@@ -1,6 +1,7 @@
 from typing import Callable, List
 import numpy as np
 from layer import Layer
+from activation_functions import pick_activation
 
 class NeuralNetwork():
     """
@@ -27,10 +28,8 @@ class NeuralNetwork():
                  task: str,
                  loss: Callable[[np.ndarray, np.ndarray], np.float32], 
                  loss_prime: Callable[[np.ndarray, np.ndarray], np.float32],
-                 activation_hidden: Callable[[np.ndarray], np.float32],
-                 activation_hidden_prime: Callable[[np.ndarray], np.float32],
-                 activation_output: Callable[[np.ndarray], np.float32],
-                 activation_output_prime: Callable[[np.ndarray], np.float32],
+                 activation_hidden_name: str,
+                 activation_output_name: str,
                  learning_rate: float):
         """
         Initialize the NeuralNetwork object.
@@ -57,10 +56,8 @@ class NeuralNetwork():
         self.task = task
         self.loss = loss
         self.loss_prime = loss_prime
-        self.activation_hidden = activation_hidden
-        self.activation_hidden_prime = activation_hidden_prime
-        self.activation_output = activation_output
-        self.activation_output_prime = activation_output_prime
+        self.activation_hidden, self.activation_hidden_prime = pick_activation(activation_hidden_name)
+        self.activation_output, self.activation_output_prime = pick_activation(activation_output_name)
         self.learning_rate = learning_rate
 
     def _add_layer(self, input_size, output_size, activation=None, activation_prime=None):
