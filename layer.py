@@ -1,5 +1,5 @@
-from weights_utils import he_init, xavier_init, zero_init
-from activation_functions import FunctionClassEnum, pick_function_class, pick_activation
+from math_functions.weight import he_init, xavier_init, zero_init
+from math_functions.activation import FunctionClassEnum, pick_function_class, pick_activation
 import numpy as np
 
 class Layer():
