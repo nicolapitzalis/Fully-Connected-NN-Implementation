@@ -1,6 +1,13 @@
+from typing import Callable, List
+from enum import Enum
 import numpy as np
 
-def identity(x):
+class FunctionClassEnum(Enum):
+    IDENTITY = 1
+    SIGMOIDAL_LIKE = 2
+    RELU_LIKE = 3
+
+def identity(x: np.ndarray) -> np.ndarray:
     """
     Identity activation function.
 
@@ -12,7 +19,7 @@ def identity(x):
     """
     return x
 
-def identity_prime(x):
+def identity_prime(x: np.ndarray) -> np.ndarray:
     """
     Derivative of the identity activation function.
 
@@ -24,7 +31,7 @@ def identity_prime(x):
     """
     return np.ones_like(x)
 
-def relu(x):
+def relu(x: np.ndarray) -> np.ndarray:
     """
     Rectified Linear Unit (ReLU) activation function.
 
@@ -36,7 +43,7 @@ def relu(x):
     """
     return np.maximum(0, x)
 
-def relu_prime(x):
+def relu_prime(x: np.ndarray) -> np.ndarray:
     """
     Derivative of the Rectified Linear Unit (ReLU) activation function.
 
@@ -48,7 +55,7 @@ def relu_prime(x):
     """
     return np.where(x > 0, 1, 0)
 
-def leaky_relu(x):
+def leaky_relu(x: np.ndarray) -> np.ndarray:
     """
     Leaky ReLU activation function.
 
@@ -60,7 +67,7 @@ def leaky_relu(x):
     """
     return np.maximum(0.01 * x, x)
 
-def leaky_relu_prime(x):
+def leaky_relu_prime(x: np.ndarray) -> np.ndarray:
     """
     Derivative of the Leaky ReLU activation function.
 
@@ -72,7 +79,7 @@ def leaky_relu_prime(x):
     """
     return np.where(x > 0, 1, 0.01)
 
-def softplus(x):
+def softplus(x: np.ndarray) -> np.ndarray:
     """
     Softplus activation function.
 
@@ -84,7 +91,7 @@ def softplus(x):
     """
     return np.log(1 + np.exp(x))
 
-def softplus_prime(x):
+def softplus_prime(x: np.ndarray) -> np.ndarray:
     """
     Derivative of the Softplus activation function.
 
@@ -96,7 +103,7 @@ def softplus_prime(x):
     """
     return sigmoid(x)
 
-def tanh(x):
+def tanh(x: np.ndarray) -> np.ndarray:
     """
     Hyperbolic tangent (tanh) activation function.
 
@@ -108,7 +115,7 @@ def tanh(x):
     """
     return np.tanh(x)
 
-def tanh_prime(x):
+def tanh_prime(x: np.ndarray) -> np.ndarray:
     """
     Derivative of the Hyperbolic tangent (tanh) activation function.
 
@@ -120,7 +127,7 @@ def tanh_prime(x):
     """
     return 1 - np.tanh(x) ** 2
 
-def sigmoid(x):
+def sigmoid(x: np.ndarray) -> np.ndarray:
     """
     Sigmoid activation function.
 
@@ -132,7 +139,7 @@ def sigmoid(x):
     """
     return 1 / (1 + np.exp(-x))
 
-def sigmoid_prime(x):
+def sigmoid_prime(x: np.ndarray) -> np.ndarray:
     """
     Derivative of the Sigmoid activation function.
 
@@ -144,7 +151,7 @@ def sigmoid_prime(x):
     """
     return sigmoid(x) * (1 - sigmoid(x))
 
-def softmax(x):
+def softmax(x: np.ndarray) -> np.ndarray:
     """
     Softmax activation function.
 
@@ -157,7 +164,7 @@ def softmax(x):
     shifted_exp = np.exp(x - np.max(x))         # Overflow protection
     return shifted_exp / np.sum(shifted_exp)
 
-def softmax_prime(x):
+def softmax_prime(x: np.ndarray) -> np.ndarray:
     """
     Derivative of the Softmax activation function.
 
@@ -171,15 +178,15 @@ def softmax_prime(x):
     return np.diagflat(f) - np.outer(f, f)    # Jacobian matrix of softmax (s_i - s_iˆ2 in diag, -s_i * s_j in off-diag)
 
 
-def pick_activation(name: str):
+def pick_activation(name: str) -> List[Callable[[np.ndarray], np.ndarray]]:
     """
-    Returns the activation function and its derivative based on the given name.
+    Pick activation function and its derivative based on the given name.
 
     Parameters:
-    name (str): The name of the activation function.
+    name (str): Name of the activation function.
 
     Returns:
-    list: A list containing the activation function and its derivative.
+    List[Callable[[np.ndarray], np.ndarray]]: List containing the activation function and its derivative.
     """
     activation_dict = {
         identity.__name__: [identity, identity_prime],
@@ -190,4 +197,23 @@ def pick_activation(name: str):
         sigmoid.__name__: [sigmoid, sigmoid_prime],
         softmax.__name__: [softmax, softmax_prime]
     }
+    
     return activation_dict[name]
+
+def pick_function_class(class_value: int) -> List[str]:
+    """
+    Pick activation functions based on the given class value.
+
+    Parameters:
+    class_value (int): Value representing the activation function class.
+
+    Returns:
+    List[str]: List of activation function names.
+    """
+    activation_class_dict = {
+        FunctionClassEnum.IDENTITY.value: [identity.__name__],
+        FunctionClassEnum.SIGMOIDAL_LIKE.value: [sigmoid.__name__, tanh.__name__, softmax.__name__],
+        FunctionClassEnum.RELU_LIKE.value: [relu.__name__, leaky_relu.__name__, softplus.__name__]
+    }
+    
+    return activation_class_dict[class_value]
