@@ -38,7 +38,7 @@ class Layer():
         self.net: np.ndarray = None
         self.output: np.ndarray = None
         self.bias: np.ndarray = np.zeros(self.output_size)
-        self.delta: np.ndarray = np.zeros(self.output_size)
+        self.error: np.ndarray = np.zeros(self.output_size)
         self.delta_weight: np.ndarray = np.zeros((self.output_size, self.input_size))
         self.delta_bias: np.ndarray = np.zeros(self.output_size)
 
@@ -73,7 +73,7 @@ class Layer():
         self.output = self.activation(self.net)
         return self.output
     
-    def backward(self, prev_delta: np.ndarray) -> np.ndarray:
+    def backward(self, prev_error: np.ndarray) -> np.ndarray:
         """
         Performs the backward pass of the layer.
 
@@ -83,14 +83,14 @@ class Layer():
         Returns:
             np.ndarray: The error of the current layer.
         """
+        delta = np.zeros(self.output_size)
         act_prime = self.activation_prime(self.net)
-        np.multiply(prev_delta, act_prime, out=self.delta)
-        self.delta = np.matmul(self.weight.T, self.delta)           # computing the error on the present layer
-        self.delta_weight += np.outer(self.delta, self.input)       # updating the weight (for generalized batch version)
+        np.multiply(prev_error, act_prime, out=delta)
+        self.delta_weight += np.outer(delta, self.input)       # updating the weight (for generalized batch version)
+        self.delta_bias += np.multiply(delta, self.bias)       # updating the bias (for generalized batch version)
+        self.error = np.matmul(self.weight.T, delta)           # computing the error on the present layer
         
-        # TODO: check if the bias update is correct
-        self.delta_bias += np.multiply(self.delta, self.bias)       # updating the bias (for generalized batch version)
-        return self.delta
+        return self.error
     
     def weight_init(self) -> np.ndarray:
         """

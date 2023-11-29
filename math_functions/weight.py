@@ -52,7 +52,7 @@ def he_init(input_size: int, output_size: int) -> np.ndarray:
         np.ndarray: The initialized weights.
     """
     std = np.sqrt(2.0 / input_size)
-    return np.random.randn(output_size, input_size) * std
+    return np.random.normal(0, std, size=(output_size, input_size))
 
 def lecun_init(input_size: int, output_size: int) -> np.ndarray:
     """

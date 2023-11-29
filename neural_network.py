@@ -93,11 +93,10 @@ class NeuralNetwork():
         Returns:
         - output (np.ndarray): Predicted outputs of the neural network.
         """
-        self.layers[0].pass_input(features)
+        self.layers[0].set_input(features)
 
         for i in range(1, len(self.layers)):
             self.layers[i].input = self.layers[i-1].output
             output = self.layers[i].forward()
         
         return output
-
