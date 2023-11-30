@@ -29,10 +29,10 @@ class Layer():
     def __init__(self, 
                  input_size: int,
                  output_size: int,
-                 activation_name: str):
+                 activation_type_value: int):
         self.input_size = input_size
         self.output_size = output_size
-        self.activation, self.activation_prime = pick_activation(activation_name)
+        self.activation, self.activation_prime = pick_activation(activation_type_value)
         self.weight = self.weight_init()
         self.input = np.ndarray = None
         self.net: np.ndarray = None
@@ -60,7 +60,7 @@ class Layer():
         Returns:
             np.ndarray: The net input to the layer.
         """
-        return np.matmul(self.weight, self.input)
+        return np.sum(np.matmul(self.weight, self.input), self.bias)
 
     def forward(self) -> np.ndarray:
         """
@@ -87,7 +87,7 @@ class Layer():
         act_prime = self.activation_prime(self.net)
         np.multiply(prev_error, act_prime, out=delta)
         self.delta_weight += np.outer(delta, self.input)       # updating the weight (for generalized batch version)
-        self.delta_bias += np.multiply(delta, self.bias)       # updating the bias (for generalized batch version)
+        self.delta_bias += delta                               # updating the bias (for generalized batch version)
         self.error = np.matmul(self.weight.T, delta)           # computing the error on the present layer
         
         return self.error

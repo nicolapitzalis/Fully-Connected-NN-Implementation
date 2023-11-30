@@ -100,3 +100,5 @@ class NeuralNetwork():
             output = self.layers[i].forward()
         
         return output
+
+    # def fit(X: np.ndarray, Y: np.ndarray)

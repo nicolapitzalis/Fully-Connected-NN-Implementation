@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Tuple
 from enum import Enum
 import numpy as np
 
@@ -6,6 +6,15 @@ class FunctionClassEnum(Enum):
     IDENTITY = 1
     SIGMOIDAL_LIKE = 2
     RELU_LIKE = 3
+
+class ActivationFunction(Enum):
+    IDENTITY = 1
+    RELU = 2
+    LEAKY_RELU = 3
+    SOFTPLUS = 4
+    TANH = 5
+    SIGMOID = 6
+    SOFTMAX = 7
 
 def identity(x: np.ndarray) -> np.ndarray:
     """
@@ -178,27 +187,32 @@ def softmax_prime(x: np.ndarray) -> np.ndarray:
     return np.diagflat(f) - np.outer(f, f)    # Jacobian matrix of softmax (s_i - s_iˆ2 in diag, -s_i * s_j in off-diag)
 
 
-def pick_activation(name: str) -> List[Callable[[np.ndarray], np.ndarray]]:
+def pick_activation(activation_type_value: int) -> Tuple[Callable[[np.ndarray], np.ndarray], Callable[[np.ndarray], np.ndarray]]:
     """
-    Pick activation function and its derivative based on the given name.
+    Pick the activation function and its derivative based on the given activation type value.
 
     Parameters:
-    name (str): Name of the activation function.
+    activation_type_value (int): Value representing the activation function type.
 
     Returns:
-    List[Callable[[np.ndarray], np.ndarray]]: List containing the activation function and its derivative.
+    Tuple[Callable[[np.ndarray], np.ndarray], Callable[[np.ndarray], np.ndarray]]: Tuple containing the activation function and its derivative.
     """
-    activation_dict = {
-        identity.__name__: [identity, identity_prime],
-        relu.__name__: [relu, relu_prime],
-        leaky_relu.__name__: [leaky_relu, leaky_relu_prime],
-        softplus.__name__: [softplus, softplus_prime],
-        tanh.__name__: [tanh, tanh_prime],
-        sigmoid.__name__: [sigmoid, sigmoid_prime],
-        softmax.__name__: [softmax, softmax_prime]
-    }
-    
-    return activation_dict[name]
+    if activation_type_value == ActivationFunction.IDENTITY.value:
+        return identity, identity_prime
+    elif activation_type_value == ActivationFunction.RELU.value:
+        return relu, relu_prime
+    elif activation_type_value == ActivationFunction.LEAKY_RELU.value:
+        return leaky_relu, leaky_relu_prime
+    elif activation_type_value == ActivationFunction.SOFTPLUS.value:
+        return softplus, softplus_prime
+    elif activation_type_value == ActivationFunction.TANH.value:
+        return tanh, tanh_prime
+    elif activation_type_value == ActivationFunction.SIGMOID.value:
+        return sigmoid, sigmoid_prime
+    elif activation_type_value == ActivationFunction.SOFTMAX.value:
+        return softmax, softmax_prime
+    else:
+        raise ValueError("Invalid activation function name.")
 
 def pick_function_class(class_value: int) -> List[str]:
     """
@@ -210,10 +224,11 @@ def pick_function_class(class_value: int) -> List[str]:
     Returns:
     List[str]: List of activation function names.
     """
-    activation_class_dict = {
-        FunctionClassEnum.IDENTITY.value: [identity.__name__],
-        FunctionClassEnum.SIGMOIDAL_LIKE.value: [sigmoid.__name__, tanh.__name__, softmax.__name__],
-        FunctionClassEnum.RELU_LIKE.value: [relu.__name__, leaky_relu.__name__, softplus.__name__]
-    }
-    
-    return activation_class_dict[class_value]
+    if class_value == FunctionClassEnum.IDENTITY.value:
+        return [identity.__name__]
+    elif class_value == FunctionClassEnum.SIGMOIDAL_LIKE.value:
+        return [sigmoid.__name__, tanh.__name__, softmax.__name__]
+    elif class_value == FunctionClassEnum.RELU_LIKE.value:
+        return [relu.__name__, leaky_relu.__name__, softplus.__name__]
+    else:
+        raise ValueError("Invalid activation function class value.")
