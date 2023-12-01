@@ -20,6 +20,8 @@ def mse (Y_true: np.ndarray, Y_pred: np.ndarray) -> np.float32:
     Returns:
         np.float32: MSE loss.
     """
+    if Y_true.ndim == 1:
+        return np.mean((Y_true - Y_pred) ** 2)
     return np.mean(np.sum((Y_true - Y_pred) ** 2, axis=1))
 
 def mee (Y_true: np.ndarray, Y_pred: np.ndarray) -> np.float32:
@@ -33,6 +35,8 @@ def mee (Y_true: np.ndarray, Y_pred: np.ndarray) -> np.float32:
     Returns:
         np.float32: MEE loss.
     """
+    if Y_true.ndim == 1:
+        return np.mean(np.sqrt(np.sum(((Y_true - Y_pred) ** 2))))
     return np.mean(np.sqrt(np.sum(((Y_true - Y_pred) ** 2), axis=1)))
 
 def mse_prime (Y_true: np.ndarray, Y_pred: np.ndarray) -> np.ndarray:
@@ -59,10 +63,17 @@ def mee_prime (Y_true: np.ndarray, Y_pred: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: Derivative of MEE loss.
     """
-    d = np.sqrt(np.sum((Y_true - Y_pred) ** 2, axis=1))
+
+    if Y_true.ndim == 1:
+        d = np.sqrt(np.sum(((Y_true - Y_pred) ** 2)))
+        if d == 0:
+            return np.zeros(Y_true.shape)
+        return np.multiply((Y_true - Y_pred), np.reciprocal(d))
+
+    d = np.sqrt(np.sum(((Y_true - Y_pred) ** 2), axis=1))
     non_zero_d = d > 0
     gradient = np.zeros(Y_true.shape)
-    gradient[non_zero_d, :] = (Y_true[non_zero_d, :] - Y_pred[non_zero_d, :]) / (d[non_zero_d] * Y_true.shape[0])
+    gradient[non_zero_d, :] = np.multiply((Y_true[non_zero_d, :] - Y_pred[non_zero_d, :]), np.reciprocal(d[non_zero_d] * Y_true.shape[0]))
     return -gradient
 
 def pick_loss(loss_type_value: int) -> Tuple[Callable[[np.ndarray], np.float32], Callable[[np.ndarray], np.ndarray]]:
