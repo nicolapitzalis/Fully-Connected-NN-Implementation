@@ -28,6 +28,9 @@ class NeuralNetwork():
         self.layers.append(Layer(input_size, output_size, activation_type_value))
 
     def _network_architecture(self):
+
+        # TODO: treat input layer not as a layer (check on pick functions)
+
         # Add input layer
         self._add_layer(self.n_features, self.n_features)
         
