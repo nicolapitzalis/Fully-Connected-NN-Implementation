@@ -60,7 +60,7 @@ class Layer():
         Returns:
             np.ndarray: The net input to the layer.
         """
-        return np.sum(np.matmul(self.weight, self.input), self.bias)
+        return np.matmul(self.weight, self.input) + self.bias
 
     def forward(self) -> np.ndarray:
         """
@@ -99,6 +99,8 @@ class Layer():
         Returns:
             np.ndarray: The initialized weight.
         """
+        if self.activation is None:
+            return None
 
         if self.activation.__name__ in pick_function_class(FunctionClassEnum.RELU_LIKE.value):
             weight = he_init(self.input_size, self.output_size)
@@ -111,3 +113,12 @@ class Layer():
 
         return weight
 
+    def update_weight(self, learning_rate: float):
+        """
+        Updates the weight of the layer.
+
+        Args:
+            learning_rate (float): The learning rate.
+        """
+        self.weight -= learning_rate * self.delta_weight
+        self.bias -= learning_rate * self.delta_bias

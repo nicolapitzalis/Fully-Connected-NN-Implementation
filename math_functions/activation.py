@@ -197,6 +197,8 @@ def pick_activation(activation_type_value: int) -> Tuple[Callable[[np.ndarray], 
     Returns:
     Tuple[Callable[[np.ndarray], np.ndarray], Callable[[np.ndarray], np.ndarray]]: Tuple containing the activation function and its derivative.
     """
+    if activation_type_value is None:
+        return None, None
     if activation_type_value == ActivationFunction.IDENTITY.value:
         return identity, identity_prime
     elif activation_type_value == ActivationFunction.RELU.value:
