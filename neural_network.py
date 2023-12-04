@@ -27,15 +27,10 @@ class NeuralNetwork():
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
         self.layers.append(Layer(input_size, output_size, activation_type_value))
 
-    def _network_architecture(self):
-
-        # TODO: treat input layer not as a layer (check on pick functions)
-
-        # Add input layer
-        self._add_layer(self.n_features, self.n_features)
-        
+    def _network_architecture(self):        
         # Add hidden layers
         for i in range(self.n_hidden_layers):
+            # first takes features as input
             if i == 0:
                 self._add_layer(self.n_features, self.hidden_layer_sizes[i], self.activation_hidden_type_value)
             else:
@@ -44,35 +39,39 @@ class NeuralNetwork():
         # Add output layer
         self._add_layer(self.hidden_layer_sizes[-1], self.n_output_units, self.activation_output_type_value)
         
-    def _predict_outputs(self, features: np.ndarray) -> np.ndarray:
-        self.layers[0].set_input(features)
-
-        for i in range(1, len(self.layers)):
-            self.layers[i].input = self.layers[i-1].output
-            output = self.layers[i].forward()
-        
-        return output
+    def _forward_propagation(self, x: np.ndarray) -> np.ndarray:
+        for layer in self.layers:
+            x = layer.forward(x)
+        return x
     
-    # TODO: Add discretization of output
+    def _backward_propagation(self, y: np.ndarray) -> np.ndarray:
+        for layer in reversed(self.layers):
+            y = layer.backward(y)
+        return y
 
-    def fit(self, X: np.ndarray, Y: np.ndarray, epochs: int, batch_size: int):
+    def _update_weights(self):
+        for layer in self.layers:
+            layer.update_weight(self.learning_rate)
+
+    def _cut_treshold(self, y: np.ndarray, treshold: float):
+        y[y < treshold] = 0
+        y[y >= treshold] = 1
+        return y
+
+    def train(self, X: np.ndarray, Y: np.ndarray, epochs: int, batch_size: int):
         self.n_features = X.shape[1]
         self._network_architecture()
 
         for epoch in range(epochs):
-            train_loss = 0
+            training_loss = 0
             for i in range(0, X.shape[0], batch_size):
-                X_batch = X[i:i+batch_size]
-                Y_batch = Y[i:i+batch_size]
-
-                for x, y in zip(X_batch, Y_batch):
-                    output = self._predict_outputs(x)
-                    train_loss += self.loss(y_true=y, y_pred=output)
-                    loss_prime = self.loss_prime(y_true=y, y_pred=output)
-
-                    for i in reversed(range(1, len(self.layers))):
-                        loss_prime = self.layers[i].backward(loss_prime)
-                        self.layers[i].update_weight(self.learning_rate)
-
+                for x, y in zip(X[i:i+batch_size], Y[i:i+batch_size]):
+                    output = self._forward_propagation(x)
+                    output = self._cut_treshold(output, 0.5)
+                    training_loss += self.loss(y_true=y, y_pred=output)
+                    error = self.loss_prime(y_true=y, y_pred=output)
+                    self._backward_propagation(error)
+                    self._update_weights()
+                
             if epoch % 10 == 0:
-                print('Epoch: {0}, loss: {1}'.format(epoch, train_loss))
+                print(f"Epoch: {epoch}, loss: {training_loss}")

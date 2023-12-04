@@ -42,17 +42,6 @@ class Layer():
         self.delta_weight: np.ndarray = np.zeros((self.output_size, self.input_size))
         self.delta_bias: np.ndarray = np.zeros(self.output_size)
 
-
-    def set_input(self, input_data: np.ndarray):
-        """
-        Sets the input data for the layer.
-
-        Args:
-            input_data (np.ndarray): The input data for the layer.
-        """
-        self.input = input_data
-        self.output = input_data
-
     def compute_net(self) -> np.ndarray:
         """
         Computes the net input to the layer.
@@ -62,13 +51,14 @@ class Layer():
         """
         return np.matmul(self.weight, self.input) + self.bias
 
-    def forward(self) -> np.ndarray:
+    def forward(self, input_data: np.ndarray) -> np.ndarray:
         """
         Performs the forward pass of the layer.
 
         Returns:
             np.ndarray: The output of the layer.
         """
+        self.input = input_data
         self.net = self.compute_net()
         self.output = self.activation(self.net)
         return self.output
@@ -99,9 +89,6 @@ class Layer():
         Returns:
             np.ndarray: The initialized weight.
         """
-        if self.activation is None:
-            return None
-
         if self.activation.__name__ in pick_function_class(FunctionClassEnum.RELU_LIKE.value):
             weight = he_init(self.input_size, self.output_size)
 
@@ -122,3 +109,6 @@ class Layer():
         """
         self.weight -= learning_rate * self.delta_weight
         self.bias -= learning_rate * self.delta_bias
+
+        self.delta_weight.fill(0)
+        self.delta_bias.fill(0)
