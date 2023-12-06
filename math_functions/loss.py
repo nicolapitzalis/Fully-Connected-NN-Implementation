@@ -21,7 +21,7 @@ def mse (y_true: np.ndarray, y_pred: np.ndarray) -> np.float32:
         np.float32: MSE loss.
     """
     if y_true.ndim == 1:
-        return np.mean((y_true - y_pred) ** 2)
+        return np.sum((y_true - y_pred) ** 2)
     return np.mean(np.sum((y_true - y_pred) ** 2, axis=1))
 
 def mee (y_true: np.ndarray, y_pred: np.ndarray) -> np.float32:
@@ -36,7 +36,7 @@ def mee (y_true: np.ndarray, y_pred: np.ndarray) -> np.float32:
         np.float32: MEE loss.
     """
     if y_true.ndim == 1:
-        return np.mean(np.sqrt(np.sum(((y_true - y_pred) ** 2))))
+        return np.sqrt(np.sum(((y_true - y_pred) ** 2)))
     return np.mean(np.sqrt(np.sum(((y_true - y_pred) ** 2), axis=1)))
 
 def mse_prime (y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
@@ -50,7 +50,7 @@ def mse_prime (y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: Derivative of MSE loss.
     """
-    return np.multiply((-2 / y_true.shape[0]), (y_true -y_pred))
+    return np.multiply((-2 / y_true.shape[0]), (y_true - y_pred))
 
 def mee_prime (y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
     """
@@ -65,10 +65,10 @@ def mee_prime (y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
     """
 
     if y_true.ndim == 1:
-        d = np.sqrt(np.sum(((y_true - y_pred) ** 2)))
+        d = mee(y_true, y_pred)
         if d == 0:
             return np.zeros(y_true.shape)
-        return np.multiply((y_true - y_pred), np.reciprocal(d))
+        return -np.multiply((y_true - y_pred), np.reciprocal(d))
 
     d = np.sqrt(np.sum(((y_true - y_pred) ** 2), axis=1))
     non_zero_d = d > 0

@@ -53,11 +53,6 @@ class NeuralNetwork():
         for layer in self.layers:
             layer.update_weight(self.learning_rate)
 
-    def _cut_treshold(self, y: np.ndarray, treshold: float):
-        y[y < treshold] = 0
-        y[y >= treshold] = 1
-        return y
-
     def train(self, X: np.ndarray, Y: np.ndarray, epochs: int, batch_size: int):
         self.n_features = X.shape[1]
         self._network_architecture()
@@ -67,11 +62,12 @@ class NeuralNetwork():
             for i in range(0, X.shape[0], batch_size):
                 for x, y in zip(X[i:i+batch_size], Y[i:i+batch_size]):
                     output = self._forward_propagation(x)
-                    output = self._cut_treshold(output, 0.5)
                     training_loss += self.loss(y_true=y, y_pred=output)
                     error = self.loss_prime(y_true=y, y_pred=output)
                     self._backward_propagation(error)
                     self._update_weights()
+                
+                training_loss /= batch_size
                 
             if epoch % 10 == 0:
                 print(f"Epoch: {epoch}, loss: {training_loss}")
