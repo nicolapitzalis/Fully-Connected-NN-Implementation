@@ -1,6 +1,7 @@
+import numpy as np
+
 from math_functions.weight import he_init, xavier_init, zero_init
 from math_functions.activation import FunctionClassEnum, pick_function_class, pick_activation
-import numpy as np
 
 class Layer():
     """
@@ -34,13 +35,13 @@ class Layer():
         self.output_size = output_size
         self.activation, self.activation_prime = pick_activation(activation_type_value)
         self.weight = self.weight_init()
-        self.input = np.ndarray = None
+        self.input: np.ndarray = None
         self.net: np.ndarray = None
         self.output: np.ndarray = None
-        self.bias: np.ndarray = np.zeros(self.output_size)
-        self.error: np.ndarray = np.zeros(self.output_size)
+        self.bias: np.ndarray = np.zeros((self.output_size, 1))
+        self.error: np.ndarray = np.zeros((self.output_size, 1))
         self.delta_weight: np.ndarray = np.zeros((self.output_size, self.input_size))
-        self.delta_bias: np.ndarray = np.zeros(self.output_size)
+        self.delta_bias: np.ndarray = np.zeros((self.output_size, 1))
 
     def compute_net(self) -> np.ndarray:
         """
@@ -73,7 +74,7 @@ class Layer():
         Returns:
             np.ndarray: The error of the current layer.
         """
-        delta = np.zeros(self.output_size)
+        delta = np.zeros((self.output_size, 1))
         act_prime = self.activation_prime(self.net)
         np.multiply(prev_error, act_prime, out=delta)
         self.delta_weight += np.outer(delta, self.input)       # updating the weight (for generalized batch version)
