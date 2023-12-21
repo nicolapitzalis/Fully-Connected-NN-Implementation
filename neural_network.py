@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import List
+from typing import Dict, List
 from layer import Layer
 from math_functions.loss import pick_loss
 from network_utility import format_data, evaluate, Metrics
@@ -11,7 +11,7 @@ class NeuralNetwork():
                  hidden_layer_sizes: List[int],
                  n_output_units: int,
                  training_loss_type_value: int,
-                 validation_loss_type_value: int,
+                 validation_loss_type_value: List[int],
                  activation_hidden_type_value: int,
                  activation_output_type_value: int,
                  learning_rate: float,
@@ -26,7 +26,7 @@ class NeuralNetwork():
         self.hidden_layer_sizes = hidden_layer_sizes
         self.n_output_units = n_output_units
         self.training_loss, self.training_loss_prime = pick_loss(training_loss_type_value)
-        self.validation_loss, self. validation_loss_prime= pick_loss(validation_loss_type_value)
+        self.validation_loss = [pick_loss(loss)[0] for loss in validation_loss_type_value]
         self.activation_hidden_type_value = activation_hidden_type_value
         self.activation_output_type_value = activation_output_type_value
         self.learning_rate = learning_rate
@@ -36,7 +36,7 @@ class NeuralNetwork():
         self.verbose = verbose
         self.training_losses: List[np.float64] = []
         self.training_accuracy: List[np.float64] = []
-        self.validation_losses: List[np.float64] = []
+        self.validation_losses: Dict[str, List[np.float64]] = {key: [] for key in [loss.__name__ for loss in self.validation_loss]}
         self.validation_accuracy: List[np.float64] = []
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
@@ -69,16 +69,16 @@ class NeuralNetwork():
         for layer in self.layers:
             layer.update_weight(self.learning_rate)
 
-    def train_net(self, x_matrix: np.ndarray, y_matrix: np.ndarray, x_val_matrix: np.ndarray = None, y_val_matrix: np.ndarray = None):
-        n_samples = x_matrix.shape[0]
-        self.n_features = x_matrix.shape[1]
+    def train_net(self, train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None):
+        n_samples = train_data.shape[0]
+        self.n_features = train_data.shape[1]
         n_batches = np.ceil(n_samples / self.batch_size)
         self._network_architecture()
 
         # iterating over epochs
         for epoch in range(self.epochs):
-            x_batches = np.array_split(x_matrix, n_batches)
-            y_batches = np.array_split(y_matrix, n_batches)
+            x_batches = np.array_split(train_data, n_batches)
+            y_batches = np.array_split(train_target, n_batches)
             training_loss = 0
             validation_loss = 0
 
@@ -87,23 +87,25 @@ class NeuralNetwork():
 
                 # iterating over samples in batch
                 for x, y in zip(x_batch, y_batch):
-                    output = self._forward_propagation(x)                                            # computing the forward pass 
-                    error = evaluate(y_true=y, y_pred=output, metrics=Metrics.LOSS.value)            # computing the error on the output layer
-                    self._backward_propagation(error)                                                # computing the backward pass
-                    self._update_weights()                                                           # updating the weights and biases
-                    training_loss += self.training_loss(y_true=y, y_pred=output)                     # computing the loss on the present sample
+                    output = self._forward_propagation(x)
+                    error = self.training_loss_prime(y_true=y, y_pred=output)
+                    self._backward_propagation(error)
+                    self._update_weights()
+                    training_loss += self.training_loss(y_true=y, y_pred=output)
             
-            training_loss /= self.batch_size                                                         # computing the average loss on the batch
-            training_accuracy = evaluate(y_true=y_matrix, y_pred=self._forward_propagation(x_matrix), metrics=Metrics.ACCURACY.value)
+            training_loss /= self.batch_size
+            training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metrics=Metrics.ACCURACY.value)
             self.training_losses.append(training_loss)
             self.training_accuracy.append(training_accuracy)
             
             # validation
-            if x_val_matrix is not None and y_val_matrix is not None:
-                output = self._forward_propagation(x_val_matrix)
-                validation_loss = self.validation_loss(y_true=y_val_matrix, y_pred=output)
-                validation_accuracy = evaluate(y_true=y_val_matrix, y_pred=output, metrics=Metrics.ACCURACY.value)
-                self.validation_losses.append(validation_loss)
+            if val_data is not None and val_target is not None:
+                output = self._forward_propagation(val_data)
+                for loss in self.validation_loss:
+                    validation_loss = evaluate(y_true=val_target, y_pred=output, metrics=Metrics.LOSS.value, loss_function=loss)
+                    self.validation_losses[loss.__name__].append(validation_loss)
+
+                validation_accuracy = evaluate(y_true=val_target, y_pred=output, metrics=Metrics.ACCURACY.value)
                 self.validation_accuracy.append(validation_accuracy)
             
             if self.verbose:
