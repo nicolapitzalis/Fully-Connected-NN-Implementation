@@ -1,8 +1,9 @@
 import numpy as np
 
-from typing import Dict, List
+from typing import List
 from layer import Layer
-from math_functions.loss import pick_loss
+from math_functions.activation import ActivationFunction
+from math_functions.loss import LossFunction, pick_loss
 from network_utility import format_data, evaluate, Metrics
 
 class NeuralNetwork():
@@ -10,14 +11,18 @@ class NeuralNetwork():
                  n_hidden_layers: int, 
                  hidden_layer_sizes: List[int],
                  n_output_units: int,
-                 training_loss_type_value: int,
-                 validation_loss_type_value: List[int],
-                 activation_hidden_type_value: int,
-                 activation_output_type_value: int,
-                 learning_rate: float,
-                 epochs: int,
-                 batch_size: int,
+                 training_loss_type_value: int = LossFunction.MSE.value,
+                 validation_loss_type_value: int = LossFunction.MSE.value,
+                 evaluation_metric_type_value: int = LossFunction.MEE.value,
+                 activation_hidden_type_value: int = ActivationFunction.SIGMOID.value,
+                 activation_output_type_value: int = ActivationFunction.IDENTITY.value,
+                 learning_rate: float = 0.01,
+                 epochs: int = 100,
+                 batch_size: int = 1,
                  classification: bool = True,
+                 early_stopping: bool = False,
+                 patience: int = 10,
+                 tollerance: float = 0.01,
                  verbose: bool = False):
         
         self.layers: List[Layer] = []
@@ -26,18 +31,24 @@ class NeuralNetwork():
         self.hidden_layer_sizes = hidden_layer_sizes
         self.n_output_units = n_output_units
         self.training_loss, self.training_loss_prime = pick_loss(training_loss_type_value)
-        self.validation_loss = [pick_loss(loss)[0] for loss in validation_loss_type_value]
+        self.validation_loss = pick_loss(validation_loss_type_value)[0]
+        self.evaluation_metric = pick_loss(evaluation_metric_type_value)[0]
         self.activation_hidden_type_value = activation_hidden_type_value
         self.activation_output_type_value = activation_output_type_value
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
         self.classification = classification
+        self.early_stopping = early_stopping
         self.verbose = verbose
+        self.patience = patience
+        self.tollerance = tollerance
         self.training_losses: List[np.float64] = []
         self.training_accuracy: List[np.float64] = []
-        self.validation_losses: Dict[str, List[np.float64]] = {key: [] for key in [loss.__name__ for loss in self.validation_loss]}
+        self.validation_losses: List[np.float64] = []
+        self.early_stopping_losses: List[np.float64] = []
         self.validation_accuracy: List[np.float64] = []
+        self.confusion_matrix: np.ndarray = None
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
         self.layers.append(Layer(input_size, output_size, activation_type_value))
@@ -70,10 +81,20 @@ class NeuralNetwork():
             layer.update_weight(self.learning_rate)
 
     def train_net(self, train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None):
-        n_samples = train_data.shape[0]
         self.n_features = train_data.shape[1]
-        n_batches = np.ceil(n_samples / self.batch_size)
         self._network_architecture()
+        
+        # early stopping initialization
+        if self.early_stopping:
+            split_index = len(train_data) * 2 // 3
+            train_data, early_stopping_data = train_data[:split_index], train_data[split_index:]
+            train_target, early_stopping_target = train_target[:split_index], train_target[split_index:]
+            best_weights = [0] * len(self.layers)
+            best_bias = [0] * len(self.layers)
+            patience = self.patience
+
+        n_samples = train_data.shape[0]
+        n_batches = np.ceil(n_samples / self.batch_size)
 
         # iterating over epochs
         for epoch in range(self.epochs):
@@ -94,22 +115,49 @@ class NeuralNetwork():
                     training_loss += self.training_loss(y_true=y, y_pred=output)
             
             training_loss /= self.batch_size
-            training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metrics=Metrics.ACCURACY.value)
+            training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=Metrics.ACCURACY.value)
             self.training_losses.append(training_loss)
             self.training_accuracy.append(training_accuracy)
             
+            # stopping decision
+            if self.early_stopping:
+                output = self._forward_propagation(early_stopping_data)
+                es_loss = self.validation_loss(y_true=early_stopping_target, y_pred=output)
+
+                # if loss is decreasing by a very small amount, we stop
+                if epoch >= self.patience:
+                    if abs(es_loss - self.early_stopping_losses[-1]) >= self.tollerance:
+                        patience = self.patience
+                        for i, layer in enumerate(self.layers):
+                            best_weights[i] = layer.weight
+                            best_bias[i] = layer.bias
+                    else:
+                        patience -= 1
+                        if patience == 0:
+                            for i, layer in enumerate(self.layers):
+                                layer.weight = best_weights[i]
+                                layer.bias = best_bias[i]
+                            break
+
+                self.early_stopping_losses.append(es_loss)
+                
             # validation
             if val_data is not None and val_target is not None:
                 output = self._forward_propagation(val_data)
-                for loss in self.validation_loss:
-                    validation_loss = evaluate(y_true=val_target, y_pred=output, metrics=Metrics.LOSS.value, loss_function=loss)
-                    self.validation_losses[loss.__name__].append(validation_loss)
+                validation_loss = self.validation_loss(y_true=val_target, y_pred=output)
+                self.validation_losses.append(validation_loss)
 
-                validation_accuracy = evaluate(y_true=val_target, y_pred=output, metrics=Metrics.ACCURACY.value)
+                validation_accuracy = evaluate(y_true=val_target, y_pred=output, metric_type_value=Metrics.ACCURACY.value)
                 self.validation_accuracy.append(validation_accuracy)
+
+                if self.classification:
+                    self.confusion_matrix = evaluate(y_true=val_target, y_pred=output, metric_type_value=Metrics.CONFUSION_MATRIX.value)
             
             if self.verbose:
                 formatted_output = "Epoch: {:<5} Training Loss: {:<30} Training Accuracy: {:<30} Validation Loss: {:<30} Validation Accuracy: {:<30}"
                 print(formatted_output.format(epoch+1, training_loss, training_accuracy, validation_loss, validation_accuracy))
 
         return self
+    
+    def predict_and_evaluate(self, data: np.ndarray, target: np.ndarray) -> np.ndarray:
+        return evaluate(y_true=target, y_pred=self._forward_propagation(data), metric_type_value=Metrics.ACCURACY.value)
