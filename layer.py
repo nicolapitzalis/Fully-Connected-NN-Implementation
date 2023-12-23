@@ -25,8 +25,8 @@ class Layer():
         delta (np.ndarray): The error of the layer.
         delta_weight (np.ndarray): The weight updates of the layer.
         delta_bias (np.ndarray): The bias updates of the layer.
-        Delta_w_old (np.ndarray): The previous Delta_w of the layer.
-        Delta_w_bias_old (np.ndarray): The previous Delta_w_bias of the layer.
+        delta_w_old (np.ndarray): The previous Delta_w of the layer.
+        delta_w_bias_old (np.ndarray): The previous Delta_w_bias of the layer.
     """
 
     def __init__(self, 
@@ -44,8 +44,8 @@ class Layer():
         self.error: np.ndarray = np.zeros((self.output_size, 1))
         self.delta_weight: np.ndarray = np.zeros((self.output_size, self.input_size))
         self.delta_bias: np.ndarray = np.zeros((self.output_size, 1))
-        self.Delta_w_old: np.ndarray = np.zeros((self.output_size, self.input_size))
-        self.Delta_w_bias_old: np.ndarray = np.zeros((self.output_size, 1))
+        self.delta_w_old: np.ndarray = np.zeros((self.output_size, self.input_size))
+        self.delta_w_bias_old: np.ndarray = np.zeros((self.output_size, 1))
     def compute_net(self) -> np.ndarray:
         """
         Computes the net input to the layer.
@@ -104,22 +104,22 @@ class Layer():
 
         return weight
 
-    def update_weight(self, learning_rate: float, Lambda: float, Alpha: float):
+    def update_weight(self, learning_rate: float, reg_lambda: float, mom_alpha: float):
         """
         Updates the weight of the layer.
 
         Args:
             learning_rate (float): The learning rate.
-            Lambda (float): Tykhonov regularization parameter.
-            Alpha (float): momentum parameter.
+            reg_lambda (float): Tykhonov regularization parameter.
+            mom_alpha (float): momentum parameter.
         """
-        Delta_w_new= -learning_rate * self.delta_weight + Alpha*self.Delta_w_old
-        self.Delta_w_old=Delta_w_new
-        self.weight += Delta_w_new - 2*Lambda*self.weight
+        delta_w_new= -learning_rate * self.delta_weight + mom_alpha*self.delta_w_old
+        self.delta_w_old=delta_w_new
+        self.weight += delta_w_new - 2*reg_lambda*self.weight
        
-        Delta_w_bias_new= -learning_rate * self.delta_bias + Alpha*self.Delta_w_bias_old
-        self.Delta_w_bias_old=Delta_w_bias_new
-        self.bias += Delta_w_bias_new 
+        delta_w_bias_new= -learning_rate * self.delta_bias + mom_alpha*self.delta_w_bias_old
+        self.delta_w_bias_old=delta_w_bias_new
+        self.bias += delta_w_bias_new 
        
         self.delta_weight.fill(0)
         self.delta_bias.fill(0)
