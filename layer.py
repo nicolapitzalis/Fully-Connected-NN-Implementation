@@ -26,6 +26,7 @@ class Layer():
         delta_weight (np.ndarray): The weight updates of the layer.
         delta_bias (np.ndarray): The bias updates of the layer.
         Delta_w_old (np.ndarray): The previous Delta_w of the layer.
+        Delta_w_bias_old (np.ndarray): The previous Delta_w_bias of the layer.
     """
 
     def __init__(self, 
@@ -44,6 +45,7 @@ class Layer():
         self.delta_weight: np.ndarray = np.zeros((self.output_size, self.input_size))
         self.delta_bias: np.ndarray = np.zeros((self.output_size, 1))
         self.Delta_w_old: np.ndarray = np.zeros((self.output_size, self.input_size))
+        self.Delta_w_bias_old: np.ndarray = np.zeros((self.output_size, 1))
     def compute_net(self) -> np.ndarray:
         """
         Computes the net input to the layer.
@@ -114,7 +116,10 @@ class Layer():
         Delta_w_new= -learning_rate * self.delta_weight + Alpha*self.Delta_w_old
         self.Delta_w_old=Delta_w_new
         self.weight += Delta_w_new - 2*Lambda*self.weight
-        self.bias -= learning_rate * self.delta_bias
+       
+        Delta_w_bias_new= -learning_rate * self.delta_bias + Alpha*self.Delta_w_bias_old
+        self.Delta_w_bias_old=Delta_w_bias_new
+        self.bias += Delta_w_bias_new 
        
         self.delta_weight.fill(0)
         self.delta_bias.fill(0)
