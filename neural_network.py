@@ -16,6 +16,8 @@ class NeuralNetwork():
                  activation_hidden_type_value: int = ActivationFunction.SIGMOID.value,
                  activation_output_type_value: int = ActivationFunction.IDENTITY.value,
                  learning_rate: float = 0.01,
+                 reg_lambda: float = 0,
+                 mom_alpha: float = 0,
                  epochs: int = 100,
                  batch_size: int = 1,
                  classification: bool = True,
@@ -23,7 +25,7 @@ class NeuralNetwork():
                  patience: int = 10,
                  tollerance: float = 0.01,
                  verbose: bool = False):
-        
+                 
         self.layers: List[Layer] = []
         self.n_features: int = None
         self.n_hidden_layers = n_hidden_layers
@@ -34,6 +36,8 @@ class NeuralNetwork():
         self.activation_hidden_type_value = activation_hidden_type_value
         self.activation_output_type_value = activation_output_type_value
         self.learning_rate = learning_rate
+        self.reg_lambda=reg_lambda
+        self.mom_alpha=mom_alpha
         self.epochs = epochs
         self.batch_size = batch_size
         self.classification = classification
@@ -75,12 +79,18 @@ class NeuralNetwork():
 
     def _update_weights(self):
         for layer in self.layers:
-            layer.update_weight(self.learning_rate)
+            layer.update_weight(self.learning_rate, self.reg_lambda, self.mom_alpha)
+    
+    def weights_norm(self):
+        norm=0
+        for layer in self.layers:
+            norm+=np.linalg.norm(layer.weight, 'fro')**2
+        return norm
 
     def train_net(self, train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None):
         self.n_features = train_data.shape[1]
         self._network_architecture()
-        
+
         # early stopping initialization
         if self.early_stopping:
             best_weights = [0] * len(self.layers)
@@ -110,6 +120,7 @@ class NeuralNetwork():
             
             # computing training loss and accuracy
             training_loss /= self.batch_size
+            training_loss += self.reg_lambda*self.weights_norm()
             self.training_losses.append(training_loss)
             training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=Metrics.ACCURACY.value,classification=self.classification)
             self.training_accuracies.append(training_accuracy)
