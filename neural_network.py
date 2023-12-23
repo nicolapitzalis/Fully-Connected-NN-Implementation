@@ -26,9 +26,6 @@ class NeuralNetwork():
                  tollerance: float = 0.01,
                  verbose: bool = False):
                  
-                 
-
-        
         self.layers: List[Layer] = []
         self.n_features: int = None
         self.n_hidden_layers = n_hidden_layers
