@@ -42,7 +42,7 @@ class NeuralNetwork():
         self.patience = patience
         self.tollerance = tollerance
         self.training_losses: List[np.float64] = []
-        self.training_accuracy: List[np.float64] = []
+        self.training_accuracies: List[np.float64] = []
         self.validation_losses: List[np.float64] = []
         self.validation_accuracies: List[np.float64] = []
         self.confusion_matrix: np.ndarray = None
@@ -108,10 +108,11 @@ class NeuralNetwork():
                     self._update_weights()
                     training_loss += self.training_loss(y_true=y, y_pred=output)
             
+            # computing training loss and accuracy
             training_loss /= self.batch_size
-            training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=Metrics.ACCURACY.value,classification=self.classification)
             self.training_losses.append(training_loss)
-            self.training_accuracy.append(training_accuracy)
+            training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=Metrics.ACCURACY.value,classification=self.classification)
+            self.training_accuracies.append(training_accuracy)
             
             # stopping decision
             if self.early_stopping:
@@ -132,11 +133,13 @@ class NeuralNetwork():
                                 layer.weight = best_weights[i]
                                 layer.bias = best_bias[i]
                             break
-
+                
+                #computing validation loss and accuracy
                 self.validation_losses.append(validation_loss)
                 validation_accuracy = evaluate(y_true=val_target, y_pred=self._forward_propagation(val_data), metric_type_value=Metrics.ACCURACY.value, classification=self.classification)
                 self.validation_accuracies.append(validation_accuracy)
             
+            # print epoch's info
             if self.verbose:
                 formatted_output = "Epoch: {:<5} Training Loss: {:<30} Training Accuracy: {:<30} Validation Loss: {:<30} Validation Accuracy: {:<30}"
                 print(formatted_output.format(epoch+1, training_loss, training_accuracy, validation_loss, validation_accuracy))
