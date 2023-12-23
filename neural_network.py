@@ -81,7 +81,7 @@ class NeuralNetwork():
         for layer in self.layers:
             layer.update_weight(self.learning_rate, self.reg_lambda, self.mom_alpha)
     
-    def weights_norm(self):
+    def _weights_norm(self):
         norm=0
         for layer in self.layers:
             norm+=np.linalg.norm(layer.weight, 'fro')**2
@@ -114,16 +114,17 @@ class NeuralNetwork():
                 for x, y in zip(x_batch, y_batch):
                     output = self._forward_propagation(x)
                     error = self.training_loss_prime(y_true=y, y_pred=output)
-                    self._backward_propagation(error)
+                    self._backward_propagation(error.T)
                     self._update_weights()
                     training_loss += self.training_loss(y_true=y, y_pred=output)
             
             # computing training loss and accuracy
             training_loss /= self.batch_size
-            training_loss += self.reg_lambda*self.weights_norm()
+            training_loss += self.reg_lambda*self._weights_norm()
             self.training_losses.append(training_loss)
-            training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=Metrics.ACCURACY.value,classification=self.classification)
-            self.training_accuracies.append(training_accuracy)
+            if self.classification:
+                training_accuracy = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=Metrics.ACCURACY.value)
+                self.training_accuracies.append(training_accuracy)
             
             # stopping decision
             if self.early_stopping:
@@ -132,7 +133,8 @@ class NeuralNetwork():
 
                 # if loss is decreasing by a very small amount, we stop
                 if epoch >= self.patience:
-                    if abs(validation_loss - self.validation_losses[-1]) >= self.tollerance:
+                    # forces it to enter at least once in order to set the best weight
+                    if abs(validation_loss - self.validation_losses[-1]) >= self.tollerance or epoch == self.patience:
                         patience = self.patience
                         for i, layer in enumerate(self.layers):
                             best_weights[i] = layer.weight
@@ -147,8 +149,9 @@ class NeuralNetwork():
                 
                 #computing validation loss and accuracy
                 self.validation_losses.append(validation_loss)
-                validation_accuracy = evaluate(y_true=val_target, y_pred=self._forward_propagation(val_data), metric_type_value=Metrics.ACCURACY.value, classification=self.classification)
-                self.validation_accuracies.append(validation_accuracy)
+                if self.classification:
+                    validation_accuracy = evaluate(y_true=val_target, y_pred=self._forward_propagation(val_data), metric_type_value=Metrics.ACCURACY.value)
+                    self.validation_accuracies.append(validation_accuracy)
             
             # print epoch's info
             if self.verbose:
@@ -158,4 +161,4 @@ class NeuralNetwork():
         return self
     
     def predict_and_evaluate(self, data: np.ndarray, target: np.ndarray, metric_type_value: int) -> np.ndarray:
-        return evaluate(y_true=target, y_pred=self._forward_propagation(data), metric_type_value=metric_type_value, classification=self.classification)
+        return evaluate(y_true=target, y_pred=self._forward_propagation(data), metric_type_value=metric_type_value)

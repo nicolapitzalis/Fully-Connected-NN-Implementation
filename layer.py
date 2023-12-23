@@ -113,11 +113,11 @@ class Layer():
             reg_lambda (float): Tykhonov regularization parameter.
             mom_alpha (float): momentum parameter.
         """
-        delta_w_new= -learning_rate * self.delta_weight + mom_alpha*self.delta_w_old
+        delta_w_new = -learning_rate * self.delta_weight + mom_alpha*self.delta_w_old
         self.delta_w_old=delta_w_new
-        self.weight += delta_w_new - 2*reg_lambda*self.weight
+        self.weight += delta_w_new - 2 * reg_lambda*self.weight
        
-        delta_w_bias_new= -learning_rate * self.delta_bias + mom_alpha*self.delta_w_bias_old
+        delta_w_bias_new = -learning_rate * self.delta_bias + mom_alpha*self.delta_w_bias_old
         self.delta_w_bias_old=delta_w_bias_new
         self.bias += delta_w_bias_new 
        

@@ -1,20 +1,6 @@
 from typing import Callable, List, Tuple
-from enum import Enum
 import numpy as np
-
-class FunctionClassEnum(Enum):
-    IDENTITY = 1
-    SIGMOIDAL_LIKE = 2
-    RELU_LIKE = 3
-
-class ActivationFunction(Enum):
-    IDENTITY = 1
-    RELU = 2
-    LEAKY_RELU = 3
-    SOFTPLUS = 4
-    TANH = 5
-    SIGMOID = 6
-    SOFTMAX = 7
+from function_enums import ActivationFunction, FunctionClassEnum
 
 def identity(x: np.ndarray) -> np.ndarray:
     """

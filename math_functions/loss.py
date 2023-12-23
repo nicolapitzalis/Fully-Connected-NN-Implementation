@@ -1,13 +1,6 @@
-from enum import Enum
 from typing import Callable, Tuple
 import numpy as np
-
-class LossFunction(Enum):
-    """
-    Enum class for loss functions.
-    """
-    MSE = 1
-    MEE = 2
+from function_enums import LossFunction
 
 def mse (y_true: np.ndarray, y_pred: np.ndarray) -> np.float32:
     """
