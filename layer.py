@@ -104,7 +104,7 @@ class Layer():
 
         return weight
 
-    def update_weight(self, learning_rate: float, reg_lambda: float, mom_alpha: float):
+    def update_weight(self, learning_rate: float, reg_lambda: float, mom_alpha: float, batch_size: int):
         """
         Updates the weight of the layer.
 
@@ -113,6 +113,10 @@ class Layer():
             reg_lambda (float): Tykhonov regularization parameter.
             mom_alpha (float): momentum parameter.
         """
+
+        self.delta_weight /= batch_size
+        self.delta_bias /= batch_size
+
         delta_w_new = -learning_rate * self.delta_weight + mom_alpha*self.delta_w_old
         self.delta_w_old=delta_w_new
         self.weight += delta_w_new - 2 * reg_lambda*self.weight

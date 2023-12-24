@@ -54,4 +54,4 @@ def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], cv_ve
                 print(f"{get_metric_name(metric)}: {metrics_values[metric][-1]}")
 
     # return mean metrics
-    return nn, {get_metric_name(key): np.mean(value) for key, value in metrics_values.items()}
+    return {get_metric_name(key): np.mean(value) for key, value in metrics_values.items()}

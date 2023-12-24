@@ -123,16 +123,10 @@ def tanh_prime(x: np.ndarray) -> np.ndarray:
     return 1 - np.tanh(x) ** 2
 
 def sigmoid(x: np.ndarray) -> np.ndarray:
-    """
-    Sigmoid activation function.
+    return np.where(x >= 0,
+                    1 / (1 + np.exp(-x)),
+                    np.exp(x) / (1 + np.exp(x)))
 
-    Parameters:
-    x (numpy.ndarray): Input array.
-
-    Returns:
-    numpy.ndarray: Output array.
-    """
-    return 1 / (1 + np.exp(-x))
 
 def sigmoid_prime(x: np.ndarray) -> np.ndarray:
     """
