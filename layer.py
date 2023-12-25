@@ -18,8 +18,10 @@ class Layer():
         activation (Callable[[np.ndarray], np.float32]): The activation function to be applied to the layer's output.
         activation_prime (Callable[[np.ndarray], np.float32]): The derivative of the activation function.
         weight (np.ndarray): The weight of the layer.
+        weight_mod (np.ndarray): The modified weight of the layer for backprop computation (due to Nesterov). If Nesterov isn't used, weight_mod=weight.
         input (np.ndarray): The input to the layer.
         bias (np.ndarray): The bias of the layer.
+        bias_mod (np.ndarray): The modified bias of the layer for backprop computation (due to Nesterov). If Nesterov isn't used, bias_mod=bias.
         net (np.ndarray): The net input to the layer.
         output (np.ndarray): The output of the layer.
         delta (np.ndarray): The error of the layer.
@@ -37,15 +39,27 @@ class Layer():
         self.output_size = output_size
         self.activation, self.activation_prime = pick_activation(activation_type_value)
         self.weight = self.weight_init()
+        self.weight_mod = self.weight
         self.input: np.ndarray = None
         self.net: np.ndarray = None
         self.output: np.ndarray = None
         self.bias: np.ndarray = np.zeros((self.output_size, 1))
+        self.bias_mod = self.bias
         self.error: np.ndarray = np.zeros((self.output_size, 1))
         self.delta_weight: np.ndarray = np.zeros((self.output_size, self.input_size))
         self.delta_bias: np.ndarray = np.zeros((self.output_size, 1))
         self.delta_w_old: np.ndarray = np.zeros((self.output_size, self.input_size))
         self.delta_w_bias_old: np.ndarray = np.zeros((self.output_size, 1))
+    
+    
+    def nesterov(self, mom_alpha: float):
+        """
+        Computes the new modified weights for backprop computation, if Nesterov is used.
+        Else the function isn't called and weight_mod and bias_mod are equal to the original ones.
+        """
+        self.weight_mod = self.weight + mom_alpha*self.delta_w_old
+        self.bias_mod = self.bias + mom_alpha*self.delta_w_bias_old
+
     def compute_net(self) -> np.ndarray:
         """
         Computes the net input to the layer.
@@ -53,7 +67,7 @@ class Layer():
         Returns:
             np.ndarray: The net input to the layer.
         """
-        return np.matmul(self.weight, self.input) + self.bias
+        return np.matmul(self.weight_mod, self.input) + self.bias_mod
 
     def forward(self, input_data: np.ndarray) -> np.ndarray:
         """
@@ -82,7 +96,7 @@ class Layer():
         np.multiply(prev_error, act_prime, out=delta)
         self.delta_weight += np.outer(delta, self.input)       # updating the weight (for generalized batch version)
         self.delta_bias += delta                               # updating the bias (for generalized batch version)
-        self.error = np.matmul(self.weight.T, delta)           # computing the error on the present layer
+        self.error = np.matmul(self.weight_mod.T, delta)           # computing the error on the present layer
         
         return self.error
     
@@ -120,10 +134,12 @@ class Layer():
         delta_w_new = -learning_rate * self.delta_weight + mom_alpha*self.delta_w_old
         self.delta_w_old=delta_w_new
         self.weight += delta_w_new - 2 * reg_lambda*self.weight
-       
+        self.weight_mod = self.weight
+
         delta_w_bias_new = -learning_rate * self.delta_bias + mom_alpha*self.delta_w_bias_old
         self.delta_w_bias_old=delta_w_bias_new
         self.bias += delta_w_bias_new 
-       
+        self.bias_mod = self.bias
+
         self.delta_weight.fill(0)
         self.delta_bias.fill(0)

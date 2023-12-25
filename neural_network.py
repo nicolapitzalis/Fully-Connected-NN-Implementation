@@ -19,6 +19,7 @@ class NeuralNetwork():
                  learning_rate: float = 0.01,
                  reg_lambda: float = 0,
                  mom_alpha: float = 0,
+                 nesterov: bool = 0,
                  epochs: int = 100,
                  batch_size: int = 1,
                  classification: bool = True,
@@ -45,6 +46,7 @@ class NeuralNetwork():
         self.reg_lambda=reg_lambda
         self.normalized_reg_lambda = reg_lambda
         self.mom_alpha=mom_alpha
+        self.nesterov=nesterov
         self.epochs = epochs
         self.batch_size = batch_size
         self.classification = classification
@@ -78,6 +80,8 @@ class NeuralNetwork():
     def _forward_propagation(self, data: np.ndarray) -> np.ndarray:
         data = format_data(data)
         for layer in self.layers:
+            if self.nesterov:
+                layer.nesterov(self.mom_alpha)
             data = layer.forward(data)
         return data.T
     
