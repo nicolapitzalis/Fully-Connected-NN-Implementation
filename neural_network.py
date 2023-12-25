@@ -85,8 +85,6 @@ class NeuralNetwork():
     def _forward_propagation(self, data: np.ndarray) -> np.ndarray:
         data = format_data(data)
         for layer in self.layers:
-            if self.nesterov and self.backprop_phase:
-                layer.nesterov(self.mom_alpha)
             data = layer.forward(data)
         return data.T
     
