@@ -19,7 +19,7 @@ class NeuralNetwork():
                  learning_rate: float = 0.01,
                  reg_lambda: float = 0,
                  mom_alpha: float = 0,
-                 nesterov: bool = 0,
+                 nesterov: bool = False,
                  epochs: int = 100,
                  batch_size: int = 1,
                  classification: bool = True,
