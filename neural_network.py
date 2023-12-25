@@ -77,7 +77,11 @@ class NeuralNetwork():
         
         # Add output layer
         self._add_layer(self.hidden_layer_sizes[-1], self.n_output_units, self.activation_output_type_value)
-        
+    
+    def _nesterov(self):
+        for layer in self.layers:
+                layer.nesterov(self.mom_alpha)
+
     def _forward_propagation(self, data: np.ndarray) -> np.ndarray:
         data = format_data(data)
         for layer in self.layers:
@@ -137,16 +141,17 @@ class NeuralNetwork():
 
                 # iterating over samples in batch
                 for x, y in zip(x_batch, y_batch):
-                    self.backprop_phase=False
+                 
                     output = self._forward_propagation(x)
-                    self.backprop_phase=True
+                    if self.nesterov:
+                        self._nesterov()
                     output_mod = self._forward_propagation(x)
                     error = self.training_loss_prime(y_true=y, y_pred=output_mod)
                     self._backward_propagation(error.T)
                     self._update_weights()
                     training_loss += self.training_loss(y_true=y, y_pred=output)
 
-            self.backprop_phase=False
+
             # computing training loss and accuracy
             training_loss /= self.batch_size
             self.normalized_reg_lambda = self.reg_lambda * (self.batch_size / train_data.shape[0])      # normalizing for batch size
