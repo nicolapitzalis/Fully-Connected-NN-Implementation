@@ -159,7 +159,7 @@ class NeuralNetwork():
                     if self.fast_stopping:
                         slow_decrease_condition = abs(validation_loss - self.validation_losses[-1]) >= self.tollerance
                     # forces it to enter at least once in order to set the best weight
-                    if (validation_loss < min_validation_loss and slow_decrease_condition) or epoch == self.patience:
+                    if (validation_loss < self.validation_losses[-1] and slow_decrease_condition) or epoch == self.patience:
                         patience = self.patience
                         for i, layer in enumerate(self.layers):
                             best_weights[i] = layer.weight
