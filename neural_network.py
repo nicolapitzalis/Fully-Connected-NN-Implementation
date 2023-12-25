@@ -61,7 +61,6 @@ class NeuralNetwork():
         self.validation_losses: List[np.float64] = []
         self.validation_evaluations: List[np.float64] = []
         self.confusion_matrix: np.ndarray = None
-        self.backprop_phase: bool = False
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
         self.layers.append(Layer(input_size, output_size, activation_type_value))
