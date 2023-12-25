@@ -1,6 +1,6 @@
 from typing import Callable, Tuple
 import numpy as np
-from function_enums import LossFunction
+from math_functions.function_enums import LossFunction
 
 def mse (y_true: np.ndarray, y_pred: np.ndarray) -> np.float32:
     """

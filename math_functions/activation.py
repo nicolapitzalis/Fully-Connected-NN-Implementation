@@ -1,6 +1,6 @@
 from typing import Callable, List, Tuple
 import numpy as np
-from function_enums import ActivationFunction, FunctionClassEnum
+from math_functions.function_enums import ActivationFunction, FunctionClassEnum
 
 def identity(x: np.ndarray) -> np.ndarray:
     """
