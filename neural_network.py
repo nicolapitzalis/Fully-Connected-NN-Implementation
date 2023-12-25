@@ -137,7 +137,7 @@ class NeuralNetwork():
 
     def train_net(self, train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None):
         
-        # initialization__________________________________________________________________________________________________________________________________
+        # initialization_______________________________________________________________________________________________________________
         n_samples = train_data.shape[0]
         self.n_features = train_data.shape[1]
         n_batches = np.ceil(n_samples / self.batch_size)
@@ -157,9 +157,9 @@ class NeuralNetwork():
             best_bias = [0] * len(self.layers)
             patience = self.patience
             slow_decrease_condition = True
-        #_________________________________________________________________________________________________________________________________________________
+        #________________________________________________________________________________________________________________________________
 
-        # training________________________________________________________________________________________________________________________________________
+        # training_______________________________________________________________________________________________________________________
         for epoch in range(self.epochs):
             training_loss = 0
             validation_loss = 0
@@ -193,9 +193,9 @@ class NeuralNetwork():
             self.training_losses.append(training_loss)
             training_evaluation = self._evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=self.evaluation_metric_type_value)
             self.training_evaluations.append(training_evaluation)
-            #____________________________________________________________________________________________________________________________________________
+            #____________________________________________________________________________________________________________________________
             
-            # validation_________________________________________________________________________________________________________________________________
+            # validation_________________________________________________________________________________________________________________
             if val_data is not None and val_target is not None:
                 output = self._forward_propagation(val_data)
                 validation_loss = self.validation_loss(y_true=val_target, y_pred=output)
@@ -223,7 +223,7 @@ class NeuralNetwork():
                 self.validation_losses.append(validation_loss)
                 validation_evaluation = self._evaluate(y_true=val_target, y_pred=self._forward_propagation(val_data), metric_type_value=self.evaluation_metric_type_value)
                 self.validation_evaluations.append(validation_evaluation)
-            #____________________________________________________________________________________________________________________________________________
+            #___________________________________________________________________________________________________________________________
             
             # print epoch's info
             if self.verbose:
