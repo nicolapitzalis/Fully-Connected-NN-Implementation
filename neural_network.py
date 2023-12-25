@@ -23,6 +23,7 @@ class NeuralNetwork():
                  batch_size: int = 1,
                  classification: bool = True,
                  early_stopping: bool = False,
+                 fast_stopping: bool = True,
                  linear_decay: bool = False,
                  patience: int = 10,
                  tollerance: float = 0.01,
@@ -49,6 +50,7 @@ class NeuralNetwork():
         self.batch_size = batch_size
         self.classification = classification
         self.early_stopping = early_stopping
+        self.fast_stopping = fast_stopping
         self.linear_decay = linear_decay
         self.verbose = verbose
         self.patience = patience
@@ -112,9 +114,12 @@ class NeuralNetwork():
             best_weights = [0] * len(self.layers)
             best_bias = [0] * len(self.layers)
             patience = self.patience
+            slow_decrease_condition = True
+            min_validation_loss = np.inf
 
         n_samples = train_data.shape[0]
         n_batches = np.ceil(n_samples / self.batch_size)
+        self.normalized_reg_lambda = self.reg_lambda * (self.batch_size / n_samples)      # normalizing for batch size
 
         # iterating over epochs
         for epoch in range(self.epochs):
@@ -122,7 +127,6 @@ class NeuralNetwork():
             y_batches = np.array_split(train_target, n_batches)
             training_loss = 0
             validation_loss = 0
-            min_validation_loss = np.inf
 
             # iterating over batches
             for x_batch, y_batch in zip(x_batches, y_batches):
@@ -140,7 +144,6 @@ class NeuralNetwork():
             
             # computing training loss and accuracy
             training_loss /= self.batch_size
-            self.normalized_reg_lambda = self.reg_lambda * (self.batch_size / train_data.shape[0])      # normalizing for batch size
             training_loss += self.normalized_reg_lambda * self._weights_norm()
             self.training_losses.append(training_loss)
             training_evaluation = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=self.evaluation_metric_type_value)
@@ -153,10 +156,10 @@ class NeuralNetwork():
 
                 # if loss is decreasing by a very small amount, we stop
                 if epoch >= self.patience:
-                    if validation_loss < min_validation_loss:
-                        min_validation_loss = validation_loss
+                    if self.fast_stopping:
+                        slow_decrease_condition = abs(validation_loss - self.validation_losses[-1]) >= self.tollerance
                     # forces it to enter at least once in order to set the best weight
-                    if (validation_loss < min_validation_loss and abs(validation_loss - self.validation_losses[-1]) >= self.tollerance) or epoch == self.patience:
+                    if (validation_loss < min_validation_loss and slow_decrease_condition) or epoch == self.patience:
                         patience = self.patience
                         for i, layer in enumerate(self.layers):
                             best_weights[i] = layer.weight
@@ -168,6 +171,8 @@ class NeuralNetwork():
                                 layer.weight = best_weights[i]
                                 layer.bias = best_bias[i]
                             break
+                    if validation_loss < min_validation_loss:
+                        min_validation_loss = validation_loss
                 
                 #computing validation loss and accuracy
                 self.validation_losses.append(validation_loss)
