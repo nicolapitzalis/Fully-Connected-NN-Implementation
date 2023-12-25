@@ -61,6 +61,7 @@ class NeuralNetwork():
         self.validation_losses: List[np.float64] = []
         self.validation_evaluations: List[np.float64] = []
         self.confusion_matrix: np.ndarray = None
+        self.backprop_phase: bool = False
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
         self.layers.append(Layer(input_size, output_size, activation_type_value))
@@ -80,7 +81,7 @@ class NeuralNetwork():
     def _forward_propagation(self, data: np.ndarray) -> np.ndarray:
         data = format_data(data)
         for layer in self.layers:
-            if self.nesterov:
+            if self.nesterov and self.backprop_phase:
                 layer.nesterov(self.mom_alpha)
             data = layer.forward(data)
         return data.T
@@ -136,12 +137,16 @@ class NeuralNetwork():
 
                 # iterating over samples in batch
                 for x, y in zip(x_batch, y_batch):
+                    self.backprop_phase=False
                     output = self._forward_propagation(x)
-                    error = self.training_loss_prime(y_true=y, y_pred=output)
+                    self.backprop_phase=True
+                    output_mod = self._forward_propagation(x)
+                    error = self.training_loss_prime(y_true=y, y_pred=output_mod)
                     self._backward_propagation(error.T)
                     self._update_weights()
                     training_loss += self.training_loss(y_true=y, y_pred=output)
-            
+
+            self.backprop_phase=False
             # computing training loss and accuracy
             training_loss /= self.batch_size
             self.normalized_reg_lambda = self.reg_lambda * (self.batch_size / train_data.shape[0])      # normalizing for batch size
