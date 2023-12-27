@@ -37,12 +37,12 @@ class Layer():
         self.output_size = output_size
         self.activation, self.activation_prime = pick_activation(activation_type_value)
         self.weight = self.weight_init()
-        self.weight_mod = self.weight
+        self.weight_mod = self.weight.copy()
         self.input: np.ndarray = None
         self.net: np.ndarray = None
         self.output: np.ndarray = None
         self.bias: np.ndarray = np.zeros((self.output_size, 1))
-        self.bias_mod = self.bias
+        self.bias_mod = self.bias.copy()
         self.error: np.ndarray = np.zeros((self.output_size, 1))
         self.delta_weight: np.ndarray = np.zeros((self.output_size, self.input_size))
         self.delta_bias: np.ndarray = np.zeros((self.output_size, 1))
@@ -129,14 +129,14 @@ class Layer():
         self.delta_bias /= batch_size
 
         delta_w_new = -learning_rate * self.delta_weight + mom_alpha * self.delta_w_old
-        self.delta_w_old = delta_w_new
+        self.delta_w_old = delta_w_new.copy()
         self.weight += delta_w_new - 2 * reg_lambda*self.weight
-        self.weight_mod = self.weight
+        self.weight_mod = self.weight.copy()
        
         delta_w_bias_new = -learning_rate * self.delta_bias + mom_alpha * self.delta_w_bias_old
-        self.delta_w_bias_old = delta_w_bias_new
+        self.delta_w_bias_old = delta_w_bias_new.copy()
         self.bias += delta_w_bias_new
-        self.bias_mod = self.bias
+        self.bias_mod = self.bias.copy()
        
         self.delta_weight.fill(0)
         self.delta_bias.fill(0)
