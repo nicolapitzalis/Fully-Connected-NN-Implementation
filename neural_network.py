@@ -7,7 +7,6 @@ import numpy as np
 
 class NeuralNetwork():
     def __init__(self, 
-                 n_hidden_layers: int,
                  hidden_layer_sizes: List[int],
                  n_output_units: int,
                  training_loss_type_value: int = LossFunction.MSE.value,
@@ -26,13 +25,13 @@ class NeuralNetwork():
                  fast_stopping: bool = True,
                  linear_decay: bool = False,
                  patience: int = 10,
-                 tollerance: float = 0.01,
+                 tolerance: float = 0.01,
                  tao: int = 300,
                  verbose: bool = False):
                  
         self.layers: List[Layer] = []
         self.n_features: int = None
-        self.n_hidden_layers = n_hidden_layers
+        self.n_hidden_layers = len(hidden_layer_sizes)
         self.hidden_layer_sizes = hidden_layer_sizes
         self.n_output_units = n_output_units
         self.training_loss, self.training_loss_prime = pick_loss(training_loss_type_value)
@@ -56,13 +55,15 @@ class NeuralNetwork():
         self.linear_decay = linear_decay
         self.verbose = verbose
         self.patience = patience
-        self.tollerance = tollerance
+        self.tolerance = tolerance
         self.tao = tao
         self.training_losses: List[np.float64] = []
         self.training_evaluations: List[np.float64] = []
         self.validation_losses: List[np.float64] = []
         self.validation_evaluations: List[np.float64] = []
         self.confusion_matrix: np.ndarray = None
+        self.best_epoch: int = None
+        self.loss_at_increase_start: float = None
 
     def _format_data(self, data: np.ndarray) -> np.ndarray:
         # if single sample, make it np broadcastable
@@ -156,7 +157,6 @@ class NeuralNetwork():
             best_weights = [0] * len(self.layers)
             best_bias = [0] * len(self.layers)
             patience = self.patience
-            slow_decrease_condition = True
         #________________________________________________________________________________________________________________________________
 
         # training_______________________________________________________________________________________________________________________
@@ -203,20 +203,54 @@ class NeuralNetwork():
                 if self.early_stopping:
                     # if loss is decreasing by a very small amount, we stop
                     if epoch >= self.patience:
+                        loss_change = validation_loss - self.validation_losses[-1]
+                        
+                        if loss_change > 0:
+                            # If loss has increased and we are not already tracking, set the start.
+                            if self.loss_at_increase_start is None:
+                                self.loss_at_increase_start = validation_loss
+                        elif loss_change < 0:
+                            # If loss has decreased, reset the start of the increase.
+                            self.loss_at_increase_start = None
+
                         if self.fast_stopping:
-                            slow_decrease_condition = abs(validation_loss - self.validation_losses[-1]) >= self.tollerance
-                        # forces it to enter at least once in order to set the best weight
-                        if (validation_loss < self.validation_losses[-1] and slow_decrease_condition) or epoch == self.patience:
-                            patience = self.patience
-                            for i, layer in enumerate(self.layers):
-                                best_weights[i] = layer.weight
-                                best_bias[i] = layer.bias
+                            # If fast stopping is on, we stop if the decrease in loss is not substantial (less than the tolerance).
+                            # Note that a decrease in loss would result in a negative loss_change, so we check if it's more than a negative tolerance.
+                            tolerance_condition = loss_change > -self.tolerance
                         else:
+                            # For non-fast stopping, we check against the loss at the start of the increase
+                            if self.loss_at_increase_start is not None:
+                                tolerance_condition = validation_loss - self.loss_at_increase_start > self.tolerance
+                            else:
+                                tolerance_condition = False  # No increase has started, so we don't stop
+
+                        # If the loss is less than the best so far, set the best epoch and save the weights.
+                        if validation_loss < min(self.validation_losses):
+                            self.best_epoch = epoch
+                            for i, layer in enumerate(self.layers):
+                                best_weights[i] = layer.weight.copy()
+                                best_bias[i] = layer.bias.copy()
+
+                        # forces it to enter at least once in order to set the best weight
+                        if not tolerance_condition or epoch == self.patience:
+                            # Continue training because:
+                            # - When fast stopping is on, the loss decrease is substantial (more than the tolerance).
+                            # - When fast stopping is off, the loss hasn't increased more than the tolerance.
+                            # - Regardless of fast stopping, it also continues if the epoch has reached exactly the patience limit.
+                            # This is where you would typically save the current weights as the best if the loss is less than the best so far.
+                            patience = self.patience
+                        else:
+                            # Stop training because:
+                            # - When fast stopping is on and the loss decrease is too small (less than the tolerance).
+                            # - When fast stopping is off and the loss increases more than the tolerance.
+                            # This is where you would typically reduce patience or revert to the best weights if patience has run out.
                             patience -= 1
                             if patience == 0:
                                 for i, layer in enumerate(self.layers):
                                     layer.weight = best_weights[i]
+                                    layer.weight_mod = best_weights[i]
                                     layer.bias = best_bias[i]
+                                    layer.bias_mod = best_bias[i]
                                 break
                 
                 #computing validation loss and accuracy
@@ -230,6 +264,11 @@ class NeuralNetwork():
                 formatted_output = "Epoch: {:<5} Training Loss: {:<30} Training Evaluation: {:<30} Validation Loss: {:<30} Validation Evaluation: {:<30}"
                 print(formatted_output.format(epoch+1, training_loss, training_evaluation, validation_loss, validation_evaluation))
 
+    def predict(self, data: np.ndarray) -> np.ndarray:
+        return self._forward_propagation(data)
+    
+    def evaluate(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+        return self._evaluate(y_true=y_true, y_pred=y_pred, metric_type_value=self.evaluation_metric_type_value)
 
     def predict_and_evaluate(self, data: np.ndarray, target: np.ndarray, metric_type_value: int) -> np.ndarray:
         return self._evaluate(y_true=target, y_pred=self._forward_propagation(data), metric_type_value=metric_type_value)
