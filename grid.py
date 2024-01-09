@@ -1,12 +1,29 @@
 import itertools
+from joblib import Parallel, delayed
 import numpy as np
 import json
 import os
+import copy
 from typing import Any, Dict, List, Tuple
 from neural_network import NeuralNetwork
 from validation import kfold_cv
 
 JSON_PATH = 'json_results/'
+
+def grid_step(k_folds: int, data: np.array, target: np.array, combination: Tuple[Any], metrics: List[int], params: Dict[str, Any], file_name_results: str, verbose: bool = False,  plot: bool = False) -> List[Dict[str, float]]:    
+    net = NeuralNetwork(**params)
+    
+    config_name = '; '.join([f"{key}: {value}" for key, value in params.items()])
+    result = kfold_cv(k_folds, copy.deepcopy(data), copy.deepcopy(target), metrics, copy.deepcopy(net), f"{file_name_results}/{str(combination)}", verbose=False, plot=plot, parallel_grid=True)
+        
+    if verbose:
+        print(f"\nConfiguration: \n{config_name}")
+        for key, value in result.items():
+            print(f"{key}: {value}")
+        print("------------------------------------------------------")
+        print("------------------------------------------------------")
+    
+    return config_name, result
 
 def grid_search(k_folds: int, data: np.array, target: np.array, metrics: List[int], fixed_param: Dict[str, Any], grid_param: Dict[str, List[Any]], file_name_results: str, verbose: bool = False,  plot: bool = False) -> List[Dict[str, float]]:
     os.makedirs(JSON_PATH, exist_ok=True)
@@ -16,27 +33,15 @@ def grid_search(k_folds: int, data: np.array, target: np.array, metrics: List[in
 
     if verbose:
         print(f"Grid over n_configurations: {len(all_combinations)}")
-    for combination in all_combinations:
-        parameters_value = dict(zip(grid_param.keys(), combination))
-        params = {**fixed_param, **parameters_value}
+    
+    parameters_value = [copy.deepcopy(dict(zip(grid_param.keys(), combination))) for combination in all_combinations]
+    params = [copy.deepcopy({**fixed_param, **param_values}) for param_values in parameters_value]
+    results = Parallel(n_jobs=-1)(delayed(grid_step)(k_folds, copy.deepcopy(data), copy.deepcopy(target), combination, metrics, param, file_name_results, verbose, plot) for combination, param in zip(all_combinations, params))
+    config_names, results = zip(*results)
+    results = dict(zip(config_names, results))
         
-        net = NeuralNetwork(**params)
-        
-        config_name = '; '.join([f"{key}: {value}" for key, value in parameters_value.items()])
-        
-        result = kfold_cv(k_folds, data, target, metrics, net, f"{file_name_results}/{str(combination)}", verbose=False, plot=plot)
-        results[config_name] = result
-        
-        with open(JSON_PATH + file_name_results + '.json', 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=4)
-        
-        if verbose:
-            print(f"\nConfiguration: \n{config_name}")
-            for key, value in result.items():
-                print(f"{key}: {value}")
-            print("------------------------------------------------------")
-            print("------------------------------------------------------")
-
+    with open(JSON_PATH + file_name_results + '.json', 'w', encoding='utf-8') as f:
+        json.dump(results, f, indent=4)
 
     return results
 

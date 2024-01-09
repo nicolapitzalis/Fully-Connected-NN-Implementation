@@ -1,9 +1,10 @@
 from typing import List
 from layer import Layer
-from math_functions.loss import pick_loss, mse, mee
+from math_functions.loss import pick_loss
 from math_functions.function_enums import Metrics, LossFunction, ActivationFunction
-from sklearn.metrics import accuracy_score, confusion_matrix
+from neural_network_utility import format_data, evaluate
 import numpy as np
+import copy
 
 class NeuralNetwork():
     def __init__(self, 
@@ -64,32 +65,10 @@ class NeuralNetwork():
         self.confusion_matrix: np.ndarray = None
         self.best_epoch: int = None
         self.loss_at_increase_start: float = None
+        self.starting_params = copy.deepcopy(self.__dict__)
 
-    def _format_data(self, data: np.ndarray) -> np.ndarray:
-        # if single sample, make it np broadcastable
-        if data.ndim == 1:
-            return data.reshape(data.shape[0], 1)
-        # if matrix, transpose it
-        return data.T
-
-    def _binary_discretizer(self, x: np.ndarray) -> np.ndarray:
-        if self.activation_output_type_value == ActivationFunction.SIGMOID.value:
-            return np.where(x >= 0.5, 1, 0)
-        elif self.activation_output_type_value == ActivationFunction.TANH.value:
-            return np.where(x >= 0, 1, 0)
-
-    def _evaluate(self, y_true: np.ndarray, y_pred: np.ndarray, metric_type_value: int) -> float:
-        if metric_type_value == Metrics.ACCURACY.value:
-            return accuracy_score(y_true=y_true, y_pred=self._binary_discretizer(y_pred))
-        
-        if metric_type_value == Metrics.CONFUSION_MATRIX.value:
-            return confusion_matrix(y_true=y_true, y_pred=self._binary_discretizer(y_pred))
-        
-        if metric_type_value == Metrics.MEE.value:
-            return mee(y_true=y_true, y_pred=y_pred)
-        
-        if metric_type_value == Metrics.MSE.value:
-            return mse(y_true=y_true, y_pred=y_pred)
+    def reset(self):
+        self.__dict__ = copy.deepcopy(self.starting_params)
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
         self.layers.append(Layer(input_size, output_size, activation_type_value))
@@ -112,7 +91,7 @@ class NeuralNetwork():
             layer.nesterov(self.mom_alpha)
         
     def _forward_propagation(self, data: np.ndarray) -> np.ndarray:
-        data = self._format_data(data)
+        data = format_data(data)
         for layer in self.layers:
             data = layer.forward(data)
         return data.T
@@ -191,7 +170,7 @@ class NeuralNetwork():
             training_loss /= self.batch_size
             training_loss += self.normalized_reg_lambda * self._weights_norm()
             self.training_losses.append(training_loss)
-            training_evaluation = self._evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=self.evaluation_metric_type_value)
+            training_evaluation = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=self.evaluation_metric_type_value, activation_output_type_value=self.activation_output_type_value)
             self.training_evaluations.append(training_evaluation)
             #____________________________________________________________________________________________________________________________
             
@@ -255,7 +234,7 @@ class NeuralNetwork():
                 
                 #computing validation loss and accuracy
                 self.validation_losses.append(validation_loss)
-                validation_evaluation = self._evaluate(y_true=val_target, y_pred=self._forward_propagation(val_data), metric_type_value=self.evaluation_metric_type_value)
+                validation_evaluation = evaluate(y_true=val_target, y_pred=self._forward_propagation(val_data), metric_type_value=self.evaluation_metric_type_value, activation_output_type_value=self.activation_output_type_value)
                 self.validation_evaluations.append(validation_evaluation)
             #___________________________________________________________________________________________________________________________
             
@@ -266,9 +245,6 @@ class NeuralNetwork():
 
     def predict(self, data: np.ndarray) -> np.ndarray:
         return self._forward_propagation(data)
-    
-    def evaluate(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-        return self._evaluate(y_true=y_true, y_pred=y_pred, metric_type_value=self.evaluation_metric_type_value)
 
     def predict_and_evaluate(self, data: np.ndarray, target: np.ndarray, metric_type_value: int) -> np.ndarray:
-        return self._evaluate(y_true=target, y_pred=self._forward_propagation(data), metric_type_value=metric_type_value)
+        return evaluate(y_true=target, y_pred=self._forward_propagation(data), metric_type_value=metric_type_value, activation_output_type_value=self.activation_output_type_value)
