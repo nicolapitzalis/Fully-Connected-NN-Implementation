@@ -135,6 +135,8 @@ class NeuralNetwork():
         if self.early_stopping:
             best_weights = [0] * len(self.layers)
             best_bias = [0] * len(self.layers)
+            best_weights_mod = [0] * len(self.layers)
+            best_bias_mod = [0] * len(self.layers)
             patience = self.patience
         #________________________________________________________________________________________________________________________________
 
@@ -204,14 +206,15 @@ class NeuralNetwork():
                                 tolerance_condition = False  # No increase has started, so we don't stop
 
                         # If the loss is less than the best so far, set the best epoch and save the weights.
-                        if validation_loss < min(self.validation_losses):
+                        if validation_loss < min(self.validation_losses) or epoch == self.patience:
                             self.best_epoch = epoch
                             for i, layer in enumerate(self.layers):
                                 best_weights[i] = layer.weight.copy()
                                 best_bias[i] = layer.bias.copy()
+                                best_weights_mod[i] = layer.weight_mod.copy()
+                                best_bias_mod[i] = layer.bias_mod.copy()
 
-                        # forces it to enter at least once in order to set the best weight
-                        if not tolerance_condition or epoch == self.patience:
+                        if not tolerance_condition:
                             # Continue training because:
                             # - When fast stopping is on, the loss decrease is substantial (more than the tolerance).
                             # - When fast stopping is off, the loss hasn't increased more than the tolerance.
@@ -227,9 +230,9 @@ class NeuralNetwork():
                             if patience == 0:
                                 for i, layer in enumerate(self.layers):
                                     layer.weight = best_weights[i]
-                                    layer.weight_mod = best_weights[i]
+                                    layer.weight_mod = best_weights_mod[i]
                                     layer.bias = best_bias[i]
-                                    layer.bias_mod = best_bias[i]
+                                    layer.bias_mod = best_bias_mod[i]
                                 break
                 
                 #computing validation loss and accuracy

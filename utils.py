@@ -1,5 +1,6 @@
 import os
 import shutil
+import matplotlib.pyplot as plt
 from typing import List, Tuple
 
 plot_source_folder = 'plots/'
@@ -65,3 +66,14 @@ def get_list_models(models: List[Tuple[str, float]]):
             model[key] = parse_value(value)
         list_models.append(model.copy())
     return list_models
+
+def plot_over_epochs(y_values: list, title: str, y_label: str, legend: str, yscale: str = None):
+    plt.figure(figsize=(4, 4))
+    if yscale == 'log':
+        plt.yscale('log')
+    plt.plot(list(range(len(y_values))), y_values, label=legend)
+    plt.title(title)
+    plt.xlabel('epochs')
+    plt.ylabel(y_label)
+    plt.legend()
+    plt.show()
