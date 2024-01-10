@@ -9,7 +9,7 @@ from validation import kfold_cv
 
 JSON_PATH = 'json_results/'
 
-def grid_step(k_folds: int, data: np.array, target: np.array, combination: Tuple[Any], metrics: List[int], fixed_param: Dict[str, Any], grid_param: Dict[str, List[Any]], file_name_results: str, verbose: bool = False,  plot: bool = False) -> List[Dict[str, float]]:
+def grid_step(k_folds: int, data: np.array, target: np.array, combination: Tuple[Any], metrics: List[int], fixed_param: Dict[str, Any], grid_param: Dict[str, List[Any]], file_name_results: str, verbose: bool = False,  plot: bool = False, log_scale: bool = False) -> List[Dict[str, float]]:
     
     parameters_value = dict(zip(grid_param.keys(), combination))
     params = {**fixed_param, **parameters_value}
@@ -17,7 +17,7 @@ def grid_step(k_folds: int, data: np.array, target: np.array, combination: Tuple
     net = NeuralNetwork(**params)
     
     config_name = '; '.join([f"{key}: {value}" for key, value in parameters_value.items()])
-    result = kfold_cv(k_folds, data, target, metrics, net, f"{file_name_results}/{str(combination)}", verbose=False, plot=plot, parallel_grid=True)
+    result = kfold_cv(k_folds, data, target, metrics, net, f"{file_name_results}/{str(combination)}", verbose=False, plot=plot, log_scale=log_scale, parallel_grid=True)
         
     if verbose:
         print(f"\nConfiguration: \n{config_name}")
@@ -28,7 +28,7 @@ def grid_step(k_folds: int, data: np.array, target: np.array, combination: Tuple
     
     return config_name, result
 
-def grid_search(k_folds: int, data: np.array, target: np.array, metrics: List[int], fixed_param: Dict[str, Any], grid_param: Dict[str, List[Any]], file_name_results: str, verbose: bool = False,  plot: bool = False) -> List[Dict[str, float]]:
+def grid_search(k_folds: int, data: np.array, target: np.array, metrics: List[int], fixed_param: Dict[str, Any], grid_param: Dict[str, List[Any]], file_name_results: str, verbose: bool = False,  plot: bool = False, log_scale: bool = False) -> List[Dict[str, float]]:
     os.makedirs(JSON_PATH, exist_ok=True)
     
     results = {}
@@ -37,7 +37,7 @@ def grid_search(k_folds: int, data: np.array, target: np.array, metrics: List[in
     if verbose:
         print(f"Grid over n_configurations: {len(all_combinations)}")
     
-    results = Parallel(n_jobs=-1)(delayed(grid_step)(k_folds, data, target, combination, metrics, fixed_param, grid_param, file_name_results, verbose, plot) for combination in all_combinations)
+    results = Parallel(n_jobs=-1)(delayed(grid_step)(k_folds, data, target, combination, metrics, fixed_param, grid_param, file_name_results, verbose, plot, log_scale=log_scale) for combination in all_combinations)
     config_names, results = zip(*results)
     results = dict(zip(config_names, results))
         

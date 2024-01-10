@@ -102,8 +102,11 @@ class NeuralNetwork():
         return error
     
     def _update_learning_rate(self, epoch: int):
-        alpha = epoch/self.tao
-        self.current_lr = (1-alpha) * self.initial_lr + alpha * self.final_lr
+        if epoch <= self.tao:
+            alpha = epoch/self.tao
+            self.current_lr = (1-alpha) * self.initial_lr + alpha * self.final_lr
+        else:
+            self.current_lr = self.final_lr
 
     def _update_weights(self):
         for layer in self.layers:

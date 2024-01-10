@@ -73,7 +73,7 @@ def process_fold(i: int, folds_data: np.array, folds_target: np.array, net: Neur
             print(f"Internal validation loss: {internal_val_loss}")
             print(f"Internal validation evaluation {get_metric_name(net.evaluation_metric_type_value)}: {internal_val_eval}")
 
-    return i, net.training_losses[:net.best_epoch], net.training_evaluations[:net.best_epoch], net.validation_losses[:net.best_epoch], net.validation_evaluations[:net.best_epoch], metrics_values
+    return i, net.training_losses, net.training_evaluations, net.validation_losses, net.validation_evaluations, metrics_values
 
 def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: NeuralNetwork, config_name: str = 'default', verbose: bool = False, plot: bool = False, log_scale: bool = False, parallel_grid: bool = False) -> Dict[str, float]:
    
