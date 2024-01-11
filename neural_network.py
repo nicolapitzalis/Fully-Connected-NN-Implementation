@@ -15,19 +15,19 @@ class NeuralNetwork():
                  evaluation_metric_type_value: int = Metrics.MEE.value,
                  activation_hidden_type_value: int = ActivationFunction.SIGMOID.value,
                  activation_output_type_value: int = ActivationFunction.IDENTITY.value,
-                 learning_rate: float = 0.01,
+                 learning_rate: float = 0.1,
                  reg_lambda: float = 0,
-                 mom_alpha: float = 0,
+                 mom_alpha: float = 0.75,
                  nesterov: bool = False,
-                 epochs: int = 100,
+                 epochs: int = 1000,
                  batch_size: int = 1,
-                 classification: bool = True,
-                 early_stopping: bool = False,
-                 fast_stopping: bool = True,
+                 classification: bool = False,
+                 early_stopping: bool = True,
+                 fast_stopping: bool = False,
                  linear_decay: bool = False,
-                 patience: int = 10,
-                 tolerance: float = 0.01,
-                 tao: int = 300,
+                 patience: int = 20,
+                 tolerance: float = 0.1,
+                 tao: int = 500,
                  verbose: bool = False):
                  
         self.layers: List[Layer] = []
@@ -66,9 +66,6 @@ class NeuralNetwork():
         self.best_epoch: int = None
         self.loss_at_increase_start: float = None
         self.starting_params = copy.deepcopy(self.__dict__)
-
-    def reset(self):
-        self.__dict__ = copy.deepcopy(self.starting_params)
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
         self.layers.append(Layer(input_size, output_size, activation_type_value))
@@ -118,7 +115,7 @@ class NeuralNetwork():
             norm+=np.linalg.norm(layer.weight, 'fro')**2
         return norm
 
-    def train_net(self, train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None):
+    def train_net(self, train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None, tr_loss_stopping_point: float = None):
         
         # initialization_______________________________________________________________________________________________________________
         n_samples = train_data.shape[0]
@@ -177,6 +174,11 @@ class NeuralNetwork():
             self.training_losses.append(training_loss)
             training_evaluation = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=self.evaluation_metric_type_value, activation_output_type_value=self.activation_output_type_value)
             self.training_evaluations.append(training_evaluation)
+
+            # when retraining for early stopping, we achieve the same level of fitting
+            if tr_loss_stopping_point is not None and training_loss <= tr_loss_stopping_point:
+                break
+
             #____________________________________________________________________________________________________________________________
             
             # validation_________________________________________________________________________________________________________________
@@ -237,6 +239,14 @@ class NeuralNetwork():
                                     layer.bias = best_bias[i]
                                     layer.bias_mod = best_bias_mod[i]
                                 break
+                    
+                    # if we reached the last epoch, we revert to the best weights
+                    if epoch == self.epochs - 1:
+                        for i, layer in enumerate(self.layers):
+                            layer.weight = best_weights[i]
+                            layer.weight_mod = best_weights_mod[i]
+                            layer.bias = best_bias[i]
+                            layer.bias_mod = best_bias_mod[i]
                 
                 #computing validation loss and accuracy
                 self.validation_losses.append(validation_loss)
@@ -247,7 +257,7 @@ class NeuralNetwork():
             # print epoch's info
             if self.verbose:
                 formatted_output = "Epoch: {:<5} Training Loss: {:<30} Training Evaluation: {:<30} Validation Loss: {:<30} Validation Evaluation: {:<30}"
-                print(formatted_output.format(epoch+1, training_loss, training_evaluation, validation_loss, validation_evaluation))
+                print(formatted_output.format(epoch, training_loss, training_evaluation, validation_loss, validation_evaluation))
 
     def predict(self, data: np.ndarray) -> np.ndarray:
         return self._forward_propagation(data)

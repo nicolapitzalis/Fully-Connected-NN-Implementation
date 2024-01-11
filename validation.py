@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 from typing import Dict, List, Tuple
 from ensemble import Ensemble
-from math_functions.function_enums import get_metric_name
+from math_functions.function_enums import Metrics, get_metric_name
 from neural_network_utility import evaluate
 from neural_network import NeuralNetwork
 from joblib import Parallel, delayed
@@ -40,6 +40,9 @@ def process_fold(i: int, folds_data: np.array, folds_target: np.array, net: Neur
     validation_data = folds_data[i]
     validation_target = folds_target[i]
     
+    if parallel_grid:
+        net = copy.deepcopy(net)
+    
     if net.early_stopping:
         # split to early stopping
         train_data, internal_val_data, train_target, internal_val_target = holdout(holdout_percentage=INTERNAL_VAL_SPLIT_PERCENTAGE, data=train_data, target=train_target, shuffle_set=True)
@@ -47,17 +50,18 @@ def process_fold(i: int, folds_data: np.array, folds_target: np.array, net: Neur
         internal_val_data = None
         internal_val_target = None
         
-    if parallel_grid:
-        net = copy.deepcopy(net)
     # NN training
     net.train_net(train_data, train_target, internal_val_data, internal_val_target)
 
     # NN training loss and evaluation
-    tr_loss = net.training_losses[-1]
-    tr_eval = net.training_evaluations[-1]
     if net.early_stopping:
-        internal_val_loss = net.validation_losses[-1]
-        internal_val_eval = net.validation_evaluations[-1]
+        tr_loss = net.training_losses[net.best_epoch]
+        tr_eval = net.training_evaluations[net.best_epoch]
+        internal_val_loss = net.validation_losses[net.best_epoch]
+        internal_val_eval = net.validation_evaluations[net.best_epoch]
+    else:
+        tr_loss = net.training_losses[-1]
+        tr_eval = net.training_evaluations[-1]
 
     # NN evaluation on validation set
     for metric in metrics:
@@ -73,7 +77,10 @@ def process_fold(i: int, folds_data: np.array, folds_target: np.array, net: Neur
             print(f"Internal validation loss: {internal_val_loss}")
             print(f"Internal validation evaluation {get_metric_name(net.evaluation_metric_type_value)}: {internal_val_eval}")
 
-    return i, net.training_losses, net.training_evaluations, net.validation_losses, net.validation_evaluations, metrics_values
+    if net.early_stopping:
+        return i, net.training_losses[:net.best_epoch], net.training_evaluations[:net.best_epoch], net.validation_losses[:net.best_epoch], net.validation_evaluations[:net.best_epoch], metrics_values
+    else:
+        return i, net.training_losses, net.training_evaluations, None, None, metrics_values
 
 def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: NeuralNetwork, config_name: str = 'default', verbose: bool = False, plot: bool = False, log_scale: bool = False, parallel_grid: bool = False) -> Dict[str, float]:
    
@@ -92,9 +99,12 @@ def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: 
     results = Parallel(n_jobs=-1)(delayed(process_fold)(i, folds_data, folds_target, net, metrics, verbose, parallel_grid) for i in range(k))
     fold_indexes, tr_losses, tr_evals, internal_val_losses, internal_val_evals, metrics_values = zip(*results)
     
+    # last training loss is equiavalent to the best training loss
     last_tr_loss = [loss_value[-1] for loss_value in tr_losses]
     last_tr_eval = [eval[-1] for eval in tr_evals]
+    best_epochs = [len(loss_value) for loss_value in tr_losses]
     if net.early_stopping:
+        # last internal validation loss is equiavalent to the best internal validation loss
         last_internal_val_loss = [loss_value[-1] for loss_value in internal_val_losses]
         last_internal_val_eval = [eval[-1] for eval in internal_val_evals]
 
@@ -106,6 +116,7 @@ def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: 
     # build result dictionary
     if net.early_stopping:
         result_dict = {
+            "best_epoch_mean": int(np.mean(best_epochs)),
             "tr_losses_mean": np.mean(last_tr_loss),
             "tr_losses_std": np.std(last_tr_loss),
             "internal_val_losses_mean": np.mean(last_internal_val_loss),
@@ -129,10 +140,17 @@ def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: 
     if plot:
         os.makedirs(PLOTS_PATH + config_name, exist_ok=True)
         plot_cv_curves(fold_indexes, tr_losses, "Training loss", "Training loss", config_name, "training_loss.png", log_scale=log_scale)
-        plot_cv_curves(fold_indexes, tr_evals, "Training evaluation", "Training evaluation", config_name, "training_evaluation.png", log_scale=log_scale)
+        if net.evaluation_metric_type_value == Metrics.ACCURACY.value:
+            plot_cv_curves(fold_indexes, tr_evals, "Training evaluation", "Training evaluation", config_name, "training_evaluation.png", log_scale=False)
+        else:
+            plot_cv_curves(fold_indexes, tr_evals, "Training evaluation", "Training evaluation", config_name, "training_evaluation.png", log_scale=log_scale)
+            
         if net.early_stopping:
             plot_cv_curves(fold_indexes, internal_val_losses, "Internal validation loss", "Internal validation loss", config_name, "internal_validation_loss.png", log_scale=log_scale)
-            plot_cv_curves(fold_indexes, internal_val_evals, "Internal validation evaluation", "Internal validation evaluation", config_name, "internal_validation_evaluation.png", log_scale=log_scale)
+            if net.evaluation_metric_type_value == Metrics.ACCURACY.value:
+                plot_cv_curves(fold_indexes, internal_val_evals, "Internal validation evaluation", "Internal validation evaluation", config_name, "internal_validation_evaluation.png", log_scale=False)
+            else:
+                plot_cv_curves(fold_indexes, internal_val_evals, "Internal validation evaluation", "Internal validation evaluation", config_name, "internal_validation_evaluation.png", log_scale=log_scale)
 
     # return mean metrics
     return result_dict
@@ -167,11 +185,14 @@ def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, 
         model.train_net(internal_train_data, internal_train_target, internal_val_data, internal_val_target)
 
         # NN training/internal_validation loss and evaluation
-        model_results['tr_loss'] = model.training_losses[-1]
-        model_results['tr_eval'] = model.training_evaluations[-1]
         if model.early_stopping:
-            model_results['internal_val_loss'] = model.validation_losses[-1]
-            model_results['internal_val_eval'] = model.validation_evaluations[-1]
+            model_results['tr_loss'] = model.training_losses[model.best_epoch]
+            model_results['tr_eval'] = model.training_evaluations[model.best_epoch]
+            model_results['internal_val_loss'] = model.validation_losses[model.best_epoch]
+            model_results['internal_val_eval'] = model.validation_evaluations[model.best_epoch]
+        else:
+            model_results['tr_loss'] = model.training_losses[-1]
+            model_results['tr_eval'] = model.training_evaluations[-1]
 
         # NN evaluation on validation set
         for metric in metrics:
@@ -194,8 +215,8 @@ def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, 
 
     # ensemble results for the current fold
     for metric in metrics:
-        avg_prediction = np.mean([model_result[f'{get_metric_name(metric)}_prediction'] for model_result in models_results], axis=0)
-        ensemble_results[get_metric_name(metric)] = evaluate(avg_prediction, validation_target, metric)
+        ensemble_prediction = np.mean([model_result[f'{get_metric_name(metric)}_prediction'] for model_result in models_results], axis=0)
+        ensemble_results[get_metric_name(metric)] = evaluate(ensemble_prediction, validation_target, metric)
 
     if verbose:
         print(f"\nFold {i+1}:")
