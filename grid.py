@@ -10,7 +10,7 @@ from validation import kfold_cv
 
 JSON_PATH = 'json_results/'
 
-def grid_step(k_folds: int, data: np.array, target: np.array, combination: Tuple[Any], metrics: List[int], fixed_param: Dict[str, Any], grid_param: Dict[str, List[Any]], file_name_results: str, verbose: bool = False,  plot: bool = False, log_scale: bool = False) -> List[Dict[str, float]]:
+def grid_step(k_folds: int, data: np.array, target: np.array, combination: Tuple[Any], metrics: List[int], fixed_param: Dict[str, Any], grid_param: Dict[str, List[Any]], file_name_results: str, verbose: bool = False,  plot: bool = False, log_scale: bool = False) -> Tuple[str, Dict[str, float]]:
     
     parameters_value = dict(zip(grid_param.keys(), combination))
     params = {**fixed_param, **parameters_value}
@@ -38,10 +38,8 @@ def grid_search(k_folds: int, data: np.array, target: np.array, metrics: List[in
     if verbose:
         print(f"Grid over n_configurations: {len(all_combinations)}")
     
-    with tqdm(total=len(all_combinations)) as pbar:
-        results = Parallel(n_jobs=-1)(delayed(grid_step)(k_folds, data, target, combination, metrics, fixed_param, grid_param, file_name_results, verbose, plot, log_scale=log_scale) for combination in all_combinations)
-        for _ in results:
-            pbar.update()
+    tasks = (delayed(grid_step)(k_folds, data, target, combination, metrics, fixed_param, grid_param, file_name_results, verbose, plot, log_scale=log_scale) for combination in all_combinations)
+    results = Parallel(n_jobs=-1)(tqdm(tasks, total=len(all_combinations)))
             
     config_names, results = zip(*results)
     results = dict(zip(config_names, results))
