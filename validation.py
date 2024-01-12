@@ -155,7 +155,7 @@ def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: 
     # return mean metrics
     return result_dict
 
-def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, ensemble: Ensemble, metrics: List[int], verbose: bool = False) -> (int, List[Dict[str, float]], Dict[str, float]):
+def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, ensemble: Ensemble, metrics: List[int], tr_stopping_point: float = None, verbose: bool = False) -> (int, List[Dict[str, float]], Dict[str, float]):
     train_data = []
     train_target = []
     validation_data = []
@@ -178,11 +178,16 @@ def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, 
             # split to early stopping
             internal_train_data, internal_val_data, internal_train_target, internal_val_target = holdout(holdout_percentage=INTERNAL_VAL_SPLIT_PERCENTAGE, data=train_data, target=train_target, shuffle_set=True)
         else:
+            internal_train_data = train_data
+            internal_train_target = train_target
             internal_val_data = None
             internal_val_target = None
             
         # NN training
-        model.train_net(internal_train_data, internal_train_target, internal_val_data, internal_val_target)
+        if tr_stopping_point is not None:
+            model.train_net(internal_train_data, internal_train_target, internal_val_data, internal_val_target, tr_loss_stopping_point=tr_stopping_point)
+        else:
+            model.train_net(internal_train_data, internal_train_target, internal_val_data, internal_val_target)
 
         # NN training/internal_validation loss and evaluation
         if model.early_stopping:
@@ -231,7 +236,7 @@ def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, 
 
     return i, models_results, ensemble_results
 
-def kfold_cv_ensemble(k: int, data: np.array, target: np.array, metrics: List[int], ensemble: Ensemble, verbose: bool = False) -> Dict[str, float]:
+def kfold_cv_ensemble(k: int, data: np.array, target: np.array, metrics: List[int], ensemble: Ensemble, tr_stopping_points: List[float] = None, verbose: bool = False) -> (Dict[str, float], Dict[str, float]):
     
     # -----------------------------------------------------------------------------------------------------------------------
     # we are working under the assumption that every model has the same early_stopping value and evaluation_metric_type_value
@@ -263,7 +268,10 @@ def kfold_cv_ensemble(k: int, data: np.array, target: np.array, metrics: List[in
     folds_target = np.array_split(target, k)
 
     # Run process_fold_ensemble in parallel and collect results
-    results = Parallel(n_jobs=-1)(delayed(process_fold_ensemble)(i, folds_data, folds_target, ensemble, metrics, verbose) for i in range(k))
+    if tr_stopping_points is None:
+        tr_stopping_points = [None] * k
+
+    results = Parallel(n_jobs=-1)(delayed(process_fold_ensemble)(i, folds_data, folds_target, ensemble, metrics, tr_stopping_point=tr_stop, verbose=verbose) for i, tr_stop in zip(range(k), tr_stopping_points))
     _, models_results, ensembles_results = zip(*results)
 
     # Aggregate results for each model

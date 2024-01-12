@@ -264,6 +264,8 @@ class NeuralNetwork():
                 formatted_output = "Epoch: {:<5} Training Loss: {:<30} Training Evaluation: {:<30} Validation Loss: {:<30} Validation Evaluation: {:<30}"
                 print(formatted_output.format(epoch, training_loss, training_evaluation, validation_loss, validation_evaluation))
 
+        return self
+
     def predict(self, data: np.ndarray) -> np.ndarray:
         return self._forward_propagation(data)
 
