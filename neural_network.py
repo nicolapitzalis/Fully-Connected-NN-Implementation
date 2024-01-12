@@ -10,6 +10,7 @@ class NeuralNetwork():
     def __init__(self, 
                  hidden_layer_sizes: List[int],
                  n_output_units: int,
+                 weight_init_uniform_range: float = None,
                  training_loss_type_value: int = LossFunction.MSE.value,
                  validation_loss_type_value: int = LossFunction.MSE.value,
                  evaluation_metric_type_value: int = Metrics.MEE.value,
@@ -35,6 +36,7 @@ class NeuralNetwork():
         self.n_hidden_layers = len(hidden_layer_sizes)
         self.hidden_layer_sizes = hidden_layer_sizes
         self.n_output_units = n_output_units
+        self.weight_init_uniform_range = weight_init_uniform_range
         self.training_loss, self.training_loss_prime = pick_loss(training_loss_type_value)
         self.validation_loss = pick_loss(validation_loss_type_value)[0]
         self.evaluation_metric_type_value = evaluation_metric_type_value
@@ -68,7 +70,10 @@ class NeuralNetwork():
         self.starting_params = copy.deepcopy(self.__dict__)
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
-        self.layers.append(Layer(input_size, output_size, activation_type_value))
+        if self.weight_init_uniform_range is not None:
+            self.layers.append(Layer(input_size, output_size, activation_type_value, self.weight_init_uniform_range))
+        else:
+            self.layers.append(Layer(input_size, output_size, activation_type_value))
 
     def _network_architecture(self):
         self.layers = []
@@ -169,7 +174,7 @@ class NeuralNetwork():
                     training_loss += self.training_loss(y_true=y, y_pred=output)
             
             # computing training loss and accuracy
-            training_loss /= self.batch_size
+            training_loss /= n_samples
             training_loss += self.normalized_reg_lambda * self._weights_norm()
             self.training_losses.append(training_loss)
             training_evaluation = evaluate(y_true=train_target, y_pred=self._forward_propagation(train_data), metric_type_value=self.evaluation_metric_type_value, activation_output_type_value=self.activation_output_type_value)

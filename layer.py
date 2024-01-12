@@ -32,10 +32,12 @@ class Layer():
     def __init__(self, 
                  input_size: int,
                  output_size: int,
-                 activation_type_value: int):
+                 activation_type_value: int,
+                 uniform_weight_range: float = None):
         self.input_size = input_size
         self.output_size = output_size
         self.activation, self.activation_prime = pick_activation(activation_type_value)
+        self.uniform_weight_range = uniform_weight_range
         self.weight = self.weight_init()
         self.weight_mod = self.weight.copy()
         self.input: np.ndarray = None
@@ -104,6 +106,10 @@ class Layer():
         Returns:
             np.ndarray: The initialized weight.
         """
+        if self.uniform_weight_range is not None:
+            weight = np.random.uniform(-self.uniform_weight_range, self.uniform_weight_range, (self.output_size, self.input_size))
+            return weight
+
         if self.activation.__name__ in pick_function_class(FunctionClassEnum.RELU_LIKE.value):
             weight = he_init(self.input_size, self.output_size)
 
@@ -130,7 +136,7 @@ class Layer():
 
         delta_w_new = -learning_rate * self.delta_weight + mom_alpha * self.delta_w_old
         self.delta_w_old = delta_w_new.copy()
-        self.weight += delta_w_new - 2 * reg_lambda*self.weight
+        self.weight += delta_w_new - 2 * reg_lambda * self.weight
         self.weight_mod = self.weight.copy()
        
         delta_w_bias_new = -learning_rate * self.delta_bias + mom_alpha * self.delta_w_bias_old

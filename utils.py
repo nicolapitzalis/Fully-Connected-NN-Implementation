@@ -67,11 +67,13 @@ def get_list_models(models: List[Tuple[str, float]]):
         list_models.append(model.copy())
     return list_models
 
-def plot_over_epochs(y_values: list, title: str, y_label: str, legend: str, yscale: str = None):
+def plot_over_epochs(y_values: list, title: str, y_label: str, y_legend: str, y_prime_values: list = None, y_prime_legend: str = None, yscale: str = None,):
     plt.figure(figsize=(4, 4))
     if yscale == 'log':
         plt.yscale('log')
-    plt.plot(list(range(len(y_values))), y_values, label=legend)
+    plt.plot(list(range(len(y_values))), y_values, label=y_legend, color='blue')
+    if y_prime_values is not None:
+        plt.plot(list(range(len(y_prime_values))), y_prime_values, label=y_prime_legend, linestyle='--', color='red')
     plt.title(title)
     plt.xlabel('epochs')
     plt.ylabel(y_label)
