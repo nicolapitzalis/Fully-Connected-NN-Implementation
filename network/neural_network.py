@@ -1,16 +1,53 @@
 from typing import List
-from layer import Layer
+from network.layer import Layer
 from math_functions.loss import pick_loss
 from math_functions.function_enums import Metrics, LossFunction, ActivationFunction
-from neural_network_utility import format_data, evaluate
+from network.neural_network_utility import format_data, evaluate
 import numpy as np
 import copy
 
 class NeuralNetwork():
+    """
+    A class representing a neural network.
+
+    Attributes:
+    - hidden_layer_sizes (List[int]): A list of integers representing the number of units in each hidden layer.
+    - n_output_units (int): The number of output units in the network.
+    - training_loss_type_value (int): The value representing the type of training loss function.
+    - validation_loss_type_value (int): The value representing the type of validation loss function.
+    - evaluation_metric_type_value (int): The value representing the type of evaluation metric.
+    - activation_hidden_type_value (int): The value representing the type of activation function for hidden layers.
+    - activation_output_type_value (int): The value representing the type of activation function for the output layer.
+    - learning_rate (float): The learning rate for the network.
+    - reg_lambda (float): The regularization parameter for the network.
+    - mom_alpha (float): The momentum parameter for the network.
+    - nesterov (bool): A boolean indicating whether to use Nesterov momentum.
+    - epochs (int): The number of training epochs.
+    - batch_size (int): The batch size for mini-batch training.
+    - classification (bool): A boolean indicating whether the network is used for classification.
+    - early_stopping (bool): A boolean indicating whether to use early stopping during training.
+    - fast_stopping (bool): A boolean indicating whether to use fast stopping during early stopping.
+    - linear_decay (bool): A boolean indicating whether to use linear learning rate decay.
+    - patience (int): The number of epochs to wait for improvement during early stopping.
+    - tolerance (float): The tolerance for detecting improvement during early stopping.
+    - tao (int): The number of epochs for linear learning rate decay.
+    - verbose (bool): A boolean indicating whether to print training progress.
+
+    Methods:
+    - _add_layer(input_size: int, output_size: int, activation_type_value: int = None): Adds a layer to the network.
+    - _network_architecture(): Initializes the network architecture.
+    - _nesterov_momentum(): Applies Nesterov momentum to the network.
+    - _forward_propagation(data: np.ndarray) -> np.ndarray: Performs forward propagation on the network.
+    - _backward_propagation(error: np.ndarray) -> np.ndarray: Performs backward propagation on the network.
+    - _update_learning_rate(epoch: int): Updates the learning rate based on the current epoch.
+    - _update_weights(): Updates the weights of the network.
+    - _weights_norm() -> float: Computes the Frobenius norm of the weights in the network.
+    - train_net(train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None, tr_loss_stopping_point: float = None): Trains the network.
+    """
+    
     def __init__(self, 
                  hidden_layer_sizes: List[int],
                  n_output_units: int,
-                 weight_init_uniform_range: float = None,
                  training_loss_type_value: int = LossFunction.MSE.value,
                  validation_loss_type_value: int = LossFunction.MSE.value,
                  evaluation_metric_type_value: int = Metrics.MEE.value,
@@ -30,13 +67,37 @@ class NeuralNetwork():
                  tolerance: float = 0.1,
                  tao: int = 500,
                  verbose: bool = False):
-                 
+        """
+        Initializes the NeuralNetwork object.
+
+        Parameters:
+        - hidden_layer_sizes (List[int]): A list of integers representing the number of units in each hidden layer.
+        - n_output_units (int): The number of output units in the network.
+        - training_loss_type_value (int): The value representing the type of training loss function.
+        - validation_loss_type_value (int): The value representing the type of validation loss function.
+        - evaluation_metric_type_value (int): The value representing the type of evaluation metric.
+        - activation_hidden_type_value (int): The value representing the type of activation function for hidden layers.
+        - activation_output_type_value (int): The value representing the type of activation function for the output layer.
+        - learning_rate (float): The learning rate for the network.
+        - reg_lambda (float): The regularization parameter for the network.
+        - mom_alpha (float): The momentum parameter for the network.
+        - nesterov (bool): A boolean indicating whether to use Nesterov momentum.
+        - epochs (int): The number of training epochs.
+        - batch_size (int): The batch size for mini-batch training.
+        - classification (bool): A boolean indicating whether the network is used for classification.
+        - early_stopping (bool): A boolean indicating whether to use early stopping during training.
+        - fast_stopping (bool): A boolean indicating whether to use fast stopping during early stopping.
+        - linear_decay (bool): A boolean indicating whether to use linear learning rate decay.
+        - patience (int): The number of epochs to wait for improvement during early stopping.
+        - tolerance (float): The tolerance for detecting improvement during early stopping.
+        - tao (int): The number of epochs for linear learning rate decay.
+        - verbose (bool): A boolean indicating whether to print training progress.
+        """
         self.layers: List[Layer] = []
         self.n_features: int = None
         self.n_hidden_layers = len(hidden_layer_sizes)
         self.hidden_layer_sizes = hidden_layer_sizes
         self.n_output_units = n_output_units
-        self.weight_init_uniform_range = weight_init_uniform_range
         self.training_loss, self.training_loss_prime = pick_loss(training_loss_type_value)
         self.validation_loss = pick_loss(validation_loss_type_value)[0]
         self.evaluation_metric_type_value = evaluation_metric_type_value
@@ -70,12 +131,20 @@ class NeuralNetwork():
         self.starting_params = copy.deepcopy(self.__dict__)
 
     def _add_layer(self, input_size: int, output_size: int, activation_type_value: int = None):
-        if self.weight_init_uniform_range is not None:
-            self.layers.append(Layer(input_size, output_size, activation_type_value, self.weight_init_uniform_range))
-        else:
-            self.layers.append(Layer(input_size, output_size, activation_type_value))
+        """
+        Adds a layer to the network.
+
+        Parameters:
+        - input_size (int): The number of input units for the layer.
+        - output_size (int): The number of output units for the layer.
+        - activation_type_value (int): The value representing the type of activation function for the layer.
+        """
+        self.layers.append(Layer(input_size, output_size, activation_type_value))
 
     def _network_architecture(self):
+        """
+        Initializes the network architecture by adding hidden layers and an output layer.
+        """
         self.layers = []
         # Add hidden layers
         for i in range(self.n_hidden_layers):
@@ -89,21 +158,48 @@ class NeuralNetwork():
         self._add_layer(self.hidden_layer_sizes[-1], self.n_output_units, self.activation_output_type_value)
 
     def _nesterov_momentum(self):
+        """
+        Applies Nesterov momentum to the network.
+        """
         for layer in self.layers:
             layer.nesterov(self.mom_alpha)
         
     def _forward_propagation(self, data: np.ndarray) -> np.ndarray:
+        """
+        Performs forward propagation on the network.
+
+        Parameters:
+        - data (np.ndarray): The input data.
+
+        Returns:
+        - np.ndarray: The output of the network.
+        """
         data = format_data(data)
         for layer in self.layers:
             data = layer.forward(data)
         return data.T
     
     def _backward_propagation(self, error: np.ndarray) -> np.ndarray:
+        """
+        Performs backward propagation on the network.
+
+        Parameters:
+        - error (np.ndarray): The error signal.
+
+        Returns:
+        - np.ndarray: The updated error signal.
+        """
         for layer in reversed(self.layers):
             error = layer.backward(error)
         return error
     
     def _update_learning_rate(self, epoch: int):
+        """
+        Updates the learning rate based on the current epoch.
+
+        Parameters:
+        - epoch (int): The current epoch.
+        """
         if epoch <= self.tao:
             alpha = epoch/self.tao
             self.current_lr = (1-alpha) * self.initial_lr + alpha * self.final_lr
@@ -111,17 +207,35 @@ class NeuralNetwork():
             self.current_lr = self.final_lr
 
     def _update_weights(self):
+        """
+        Updates the weights of the network.
+        """
         for layer in self.layers:
             layer.update_weight(self.current_lr, self.normalized_reg_lambda, self.mom_alpha, self.batch_size)
     
-    def _weights_norm(self):
+    def _weights_norm(self) -> float:
+        """
+        Computes the Frobenius norm of the weights in the network.
+
+        Returns:
+        - float: The Frobenius norm of the weights.
+        """
         norm=0
         for layer in self.layers:
             norm+=np.linalg.norm(layer.weight, 'fro')**2
         return norm
 
     def train_net(self, train_data: np.ndarray, train_target: np.ndarray, val_data: np.ndarray = None, val_target: np.ndarray = None, tr_loss_stopping_point: float = None):
-        
+        """
+        Trains the network.
+
+        Parameters:
+        - train_data (np.ndarray): The training data.
+        - train_target (np.ndarray): The training target.
+        - val_data (np.ndarray): The validation data.
+        - val_target (np.ndarray): The validation target.
+        - tr_loss_stopping_point (float): The training loss stopping point for early stopping.
+        """
         # initialization_______________________________________________________________________________________________________________
         n_samples = train_data.shape[0]
         self.n_features = train_data.shape[1]

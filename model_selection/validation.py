@@ -4,16 +4,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 from typing import Dict, List, Tuple
-from ensemble import Ensemble
+from network.ensemble import Ensemble
 from math_functions.function_enums import Metrics, get_metric_name
-from neural_network_utility import evaluate
-from neural_network import NeuralNetwork
+from network.neural_network_utility import evaluate
+from network.neural_network import NeuralNetwork
 from joblib import Parallel, delayed
 
 INTERNAL_VAL_SPLIT_PERCENTAGE = 0.8
 PLOTS_PATH = 'plots/'
 
 def holdout(data: np.array, target: np.array, holdout_percentage: float, shuffle_set: bool = True) -> (np.array, np.array, np.array, np.array):
+    """
+    Splits the data and target arrays into two sets based on the holdout percentage.
+    
+    Parameters:
+        data (np.array): The input data array.
+        target (np.array): The target array.
+        holdout_percentage (float): The percentage of data to be held out.
+        shuffle_set (bool, optional): Whether to shuffle the data and target arrays before splitting. Defaults to True.
+    
+    Returns:
+        (np.array, np.array, np.array, np.array): A tuple containing the first half of the data, second half of the data,
+        first half of the target, and second half of the target arrays.
+    """
+
     if shuffle_set:
         data, target = shuffle(data, target)
     
@@ -24,6 +38,22 @@ def holdout(data: np.array, target: np.array, holdout_percentage: float, shuffle
     return first_half_data, second_half_data, first_half_target, second_half_target
 
 def process_fold(i: int, folds_data: np.array, folds_target: np.array, net: NeuralNetwork, metrics: List[int], verbose: bool = False, parallel_grid: bool = False) -> (int, np.array, np.array, np.array, np.array, Dict[str, float]):
+    """
+    Process a single fold of data for model training and evaluation.
+
+    Args:
+        i (int): The index of the current fold.
+        folds_data (np.array): The array of input data folds.
+        folds_target (np.array): The array of target data folds.
+        net (NeuralNetwork): The neural network model.
+        metrics (List[int]): The list of evaluation metrics to calculate.
+        verbose (bool, optional): Whether to print verbose output. Defaults to False.
+        parallel_grid (bool, optional): Whether to use parallel grid search. Defaults to False.
+
+    Returns:
+        Tuple[int, np.array, np.array, np.array, np.array, Dict[str, float]]: A tuple containing the fold index, training losses, training evaluations, validation losses, validation evaluations, and metric values.
+    """
+    
     train_data = []
     train_target = []
     validation_data = []
@@ -83,6 +113,25 @@ def process_fold(i: int, folds_data: np.array, folds_target: np.array, net: Neur
         return i, net.training_losses, net.training_evaluations, None, None, metrics_values
 
 def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: NeuralNetwork, config_name: str = 'default', verbose: bool = False, plot: bool = False, log_scale: bool = False, parallel_grid: bool = False) -> Dict[str, float]:
+    """
+    Perform k-fold cross-validation on a given neural network model.
+
+    Parameters:
+    - k (int): The number of folds for cross-validation.
+    - data (np.array): The input data for training and evaluation.
+    - target (np.array): The target values for training and evaluation.
+    - metrics (List[int]): The list of metrics to evaluate the model performance.
+    - net (NeuralNetwork): The neural network model to be trained and evaluated.
+    - config_name (str): The name of the configuration (default: 'default').
+    - verbose (bool): Whether to print progress information during training and evaluation (default: False).
+    - plot (bool): Whether to plot the training and evaluation curves (default: False).
+    - log_scale (bool): Whether to use a logarithmic scale for the plot axes (default: False).
+    - parallel_grid (bool): Whether to use parallel processing for grid search (default: False).
+
+    Returns:
+    - result_dict (Dict[str, float]): A dictionary containing the mean values of the evaluation metrics.
+
+    """
    
     tr_losses = []
     internal_val_losses = []
@@ -94,7 +143,6 @@ def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: 
     # split data and target in k folds
     folds_data = np.array_split(data, k)
     folds_target = np.array_split(target, k)
-    metrics_values = {metric: [] for metric in metrics}
     
     results = Parallel(n_jobs=-1)(delayed(process_fold)(i, folds_data, folds_target, net, metrics, verbose, parallel_grid) for i in range(k))
     fold_indexes, tr_losses, tr_evals, internal_val_losses, internal_val_evals, metrics_values = zip(*results)
@@ -156,6 +204,22 @@ def kfold_cv(k: int, data: np.array, target: np.array, metrics: List[int], net: 
     return result_dict
 
 def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, ensemble: Ensemble, metrics: List[int], tr_stopping_point: float = None, verbose: bool = False) -> (int, List[Dict[str, float]], Dict[str, float]):
+    """
+    Process a fold in an ensemble model selection.
+
+    Args:
+        i (int): The index of the current fold.
+        folds_data (np.array): The array of data folds.
+        folds_target (np.array): The array of target folds.
+        ensemble (Ensemble): The ensemble model.
+        metrics (List[int]): The list of metrics to evaluate the models.
+        tr_stopping_point (float, optional): The stopping point for training. Defaults to None.
+        verbose (bool, optional): Whether to print verbose output. Defaults to False.
+
+    Returns:
+        Tuple[int, List[Dict[str, float]], Dict[str, float]]: A tuple containing the index of the current fold, the list of model results, and the ensemble results.
+    """
+    
     train_data = []
     train_target = []
     validation_data = []
@@ -237,7 +301,22 @@ def process_fold_ensemble(i: int, folds_data: np.array, folds_target: np.array, 
     return i, models_results, ensemble_results
 
 def kfold_cv_ensemble(k: int, data: np.array, target: np.array, metrics: List[int], ensemble: Ensemble, tr_stopping_points: List[float] = None, verbose: bool = False) -> (Dict[str, float], Dict[str, float]):
-    
+    """
+    Perform k-fold cross-validation for an ensemble of models.
+
+    Args:
+        k (int): The number of folds for cross-validation.
+        data (np.array): The input data.
+        target (np.array): The target values.
+        metrics (List[int]): The list of metrics to evaluate the models.
+        ensemble (Ensemble): The ensemble of models to evaluate.
+        tr_stopping_points (List[float], optional): The stopping points for early stopping in each fold. Defaults to None.
+        verbose (bool, optional): Whether to print verbose output. Defaults to False.
+
+    Returns:
+        Tuple[Dict[str, float], Dict[str, float]]: A tuple containing the aggregated results for each model and the ensemble.
+    """
+        
     # -----------------------------------------------------------------------------------------------------------------------
     # we are working under the assumption that every model has the same early_stopping value and evaluation_metric_type_value
     # -----------------------------------------------------------------------------------------------------------------------
@@ -259,7 +338,7 @@ def kfold_cv_ensemble(k: int, data: np.array, target: np.array, metrics: List[in
     
     kfold_ensemble_result = {}
     kfold_model_result = {}
-    
+
     # shuffle data and target
     data, target = shuffle(data, target)
     
@@ -300,18 +379,32 @@ def kfold_cv_ensemble(k: int, data: np.array, target: np.array, metrics: List[in
         for metric in metrics:
             ensemble_aggregated_results[get_metric_name(metric)].append(ensemble_result[get_metric_name(metric)])
 
+    kfold_ensemble_result['ensemble'] = {}
     # Compute mean and standard deviation for ensemble results
     for result, values in ensemble_aggregated_results.items():
         if result in [get_metric_name(metric) for metric in metrics]:
             result = 'validation_' + result
-
-        kfold_ensemble_result[result + '_mean'] = np.mean(values)
-        kfold_ensemble_result[result + '_std'] = np.std(values)
+        
+        kfold_ensemble_result['ensemble'][result + '_mean'] = np.mean(values)
+        kfold_ensemble_result['ensemble'][result + '_std'] = np.std(values)
 
     
     return kfold_model_result, kfold_ensemble_result
 
 def plot_cv_curves(fold_indexes: Tuple[int], data: np.array, y_label: str, title: str, config_name: str, filename: str, log_scale: bool = False):
+    """
+    Plots cross-validation curves.
+
+    Args:
+        fold_indexes (Tuple[int]): The fold indexes to plot.
+        data (np.array): The data containing the loss arrays for each fold.
+        y_label (str): The label for the y-axis.
+        title (str): The title of the plot.
+        config_name (str): The name of the configuration.
+        filename (str): The filename to save the plot.
+        log_scale (bool, optional): Whether to use a logarithmic scale for the y-axis. Defaults to False.
+    """
+    
     plt.figure(figsize=(8, 6))
 
     # Find the maximum length of training loss arrays

@@ -3,6 +3,15 @@ import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
 def read_monk(path: str) -> (np.ndarray, np.ndarray):
+    """
+    Reads the MONK dataset from a CSV file.
+
+    Args:
+        path (str): The path to the CSV file.
+
+    Returns:
+        tuple: A tuple containing the data and targets as numpy arrays.
+    """
     data = pd.read_csv(path, sep=" ", header=None, usecols=range(1, 8))     #excluding first empty col and ids
     targets = data[data.columns[0]].to_numpy()
     data.drop(data.columns[0], axis=1, inplace=True)
@@ -12,6 +21,15 @@ def read_monk(path: str) -> (np.ndarray, np.ndarray):
     return data, targets
 
 def read_cup(path: str) -> (np.ndarray, np.ndarray):
+    """
+    Reads the CUP dataset from a CSV file.
+
+    Args:
+        path (str): The path to the CSV file.
+
+    Returns:
+        tuple: A tuple containing the data and targets as numpy arrays.
+    """
     data = pd.read_csv(path, sep=",", header=None, comment='#')
     data.drop(data.columns[0], axis=1, inplace=True)
     targets = data[data.columns[-3:]].to_numpy()
@@ -21,6 +39,15 @@ def read_cup(path: str) -> (np.ndarray, np.ndarray):
     return data, targets
 
 def read_old_cup(path: str) -> (np.ndarray, np.ndarray):
+    """
+    Reads the old CUP dataset from a CSV file.
+
+    Args:
+        path (str): The path to the CSV file.
+
+    Returns:
+        tuple: A tuple containing the data and targets as numpy arrays.
+    """
     data = pd.read_csv(path, sep=",", header=None, comment='#')
     data.drop(data.columns[0], axis=1, inplace=True)
     targets = data[data.columns[-2:]].to_numpy()

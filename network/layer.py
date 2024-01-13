@@ -4,40 +4,24 @@ from math_functions.weight import he_init, xavier_init, zero_init
 from math_functions.activation import FunctionClassEnum, pick_function_class, pick_activation
 
 class Layer():
-    """
-    A class representing a neural network layer.
-
-    Args:
-        input_size (int): The size of the input to the layer.
-        output_size (int): The size of the output from the layer.
-        activation_name (str): The name of the activation function to be applied to the layer's output.
-
-    Attributes:
-        input_size (int): The size of the input to the layer.
-        output_size (int): The size of the output from the layer.
-        activation (Callable[[np.ndarray], np.float32]): The activation function to be applied to the layer's output.
-        activation_prime (Callable[[np.ndarray], np.float32]): The derivative of the activation function.
-        weight (np.ndarray): The weight of the layer.
-        input (np.ndarray): The input to the layer.
-        bias (np.ndarray): The bias of the layer.
-        net (np.ndarray): The net input to the layer.
-        output (np.ndarray): The output of the layer.
-        delta (np.ndarray): The error of the layer.
-        delta_weight (np.ndarray): The weight updates of the layer.
-        delta_bias (np.ndarray): The bias updates of the layer.
-        delta_w_old (np.ndarray): The previous Delta_w of the layer.
-        delta_w_bias_old (np.ndarray): The previous Delta_w_bias of the layer.
-    """
-
     def __init__(self, 
                  input_size: int,
                  output_size: int,
-                 activation_type_value: int,
-                 uniform_weight_range: float = None):
+                 activation_type_value: int):
+        """
+        Initializes a Layer object.
+
+        Args:
+            input_size (int): The size of the input to the layer.
+            output_size (int): The size of the output from the layer.
+            activation_type_value (int): The value representing the activation function type.
+
+        Returns:
+            None
+        """
         self.input_size = input_size
         self.output_size = output_size
         self.activation, self.activation_prime = pick_activation(activation_type_value)
-        self.uniform_weight_range = uniform_weight_range
         self.weight = self.weight_init()
         self.weight_mod = self.weight.copy()
         self.input: np.ndarray = None
@@ -53,8 +37,13 @@ class Layer():
 
     def nesterov(self, mom_alpha: float):
         """
-        Computes the new modified weights for backprop computation, if Nesterov is used.
-        Else the function isn't called and weight_mod and bias_mod are equal to the original ones.
+        Applies Nesterov momentum to update the weights and biases.
+
+        Args:
+            mom_alpha (float): The momentum coefficient.
+
+        Returns:
+            None
         """
         self.weight_mod = self.weight + mom_alpha * self.delta_w_old
         self.bias_mod = self.bias + mom_alpha * self.delta_w_bias_old
@@ -70,7 +59,10 @@ class Layer():
 
     def forward(self, input_data: np.ndarray) -> np.ndarray:
         """
-        Performs the forward pass of the layer.
+        Performs forward propagation through the layer.
+
+        Args:
+            input_data (np.ndarray): The input data.
 
         Returns:
             np.ndarray: The output of the layer.
@@ -82,34 +74,30 @@ class Layer():
     
     def backward(self, prev_error: np.ndarray) -> np.ndarray:
         """
-        Performs the backward pass of the layer.
+        Performs backward propagation through the layer.
 
         Args:
-            prev_delta (np.ndarray): The error of the next layer.
+            prev_error (np.ndarray): The error from the next layer.
 
         Returns:
-            np.ndarray: The error of the current layer.
+            np.ndarray: The error for the current layer.
         """
         delta = np.zeros((self.output_size, 1))
         act_prime = self.activation_prime(self.net)
         np.multiply(prev_error, act_prime, out=delta)
-        self.delta_weight += np.outer(delta, self.input)       # updating the weight (for generalized batch version)
-        self.delta_bias += delta                               # updating the bias (for generalized batch version)
-        self.error = np.matmul(self.weight_mod.T, delta)           # computing the error on the present layer
+        self.delta_weight += np.outer(delta, self.input)
+        self.delta_bias += delta
+        self.error = np.matmul(self.weight_mod.T, delta)
         
         return self.error
     
     def weight_init(self) -> np.ndarray:
         """
-        Initializes the weight of the layer.
+        Initializes the weights of the layer based on the activation function.
 
         Returns:
-            np.ndarray: The initialized weight.
+            np.ndarray: The initialized weights.
         """
-        if self.uniform_weight_range is not None:
-            weight = np.random.uniform(-self.uniform_weight_range, self.uniform_weight_range, (self.output_size, self.input_size))
-            return weight
-
         if self.activation.__name__ in pick_function_class(FunctionClassEnum.RELU_LIKE.value):
             weight = he_init(self.input_size, self.output_size)
 
@@ -123,14 +111,17 @@ class Layer():
 
     def update_weight(self, learning_rate: float, reg_lambda: float, mom_alpha: float, batch_size: int):
         """
-        Updates the weight of the layer.
+        Updates the weights and biases of the layer.
 
         Args:
             learning_rate (float): The learning rate.
-            reg_lambda (float): Tykhonov regularization parameter.
-            mom_alpha (float): momentum parameter.
-        """
+            reg_lambda (float): The regularization parameter.
+            mom_alpha (float): The momentum coefficient.
+            batch_size (int): The size of the batch.
 
+        Returns:
+            None
+        """
         self.delta_weight /= batch_size
         self.delta_bias /= batch_size
 

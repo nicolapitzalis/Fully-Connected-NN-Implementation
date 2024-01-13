@@ -1,0 +1,106 @@
+{
+    "model_1": {
+        "tr_losses_mean": 0.08683316800147091,
+        "tr_losses_std": 0.017338835395469,
+        "tr_evals_mean": 0.2685590924017898,
+        "tr_evals_std": 0.028983275155475722,
+        "validation_mse_mean": 0.5670350962507313,
+        "validation_mse_std": 0.20907944112783552,
+        "validation_mee_mean": 0.5392026978753681,
+        "validation_mee_std": 0.06986242727183832
+    },
+    "model_2": {
+        "tr_losses_mean": 0.08100751071605737,
+        "tr_losses_std": 0.010156141541122864,
+        "tr_evals_mean": 0.25703528062860553,
+        "tr_evals_std": 0.02445494065967836,
+        "validation_mse_mean": 0.5151710925657059,
+        "validation_mse_std": 0.14865285966116815,
+        "validation_mee_mean": 0.5291467773284418,
+        "validation_mee_std": 0.05844674690695674
+    },
+    "model_3": {
+        "tr_losses_mean": 0.07960178886654001,
+        "tr_losses_std": 0.011937053673231746,
+        "tr_evals_mean": 0.2726520806992731,
+        "tr_evals_std": 0.029706240101039328,
+        "validation_mse_mean": 0.5578466157280596,
+        "validation_mse_std": 0.09865149315577301,
+        "validation_mee_mean": 0.5518877651577554,
+        "validation_mee_std": 0.03960566736435592
+    },
+    "model_4": {
+        "tr_losses_mean": 0.08466814747323906,
+        "tr_losses_std": 0.007135775630576627,
+        "tr_evals_mean": 0.25760134784385313,
+        "tr_evals_std": 0.013665572093089228,
+        "validation_mse_mean": 0.534649457972577,
+        "validation_mse_std": 0.1511308679934553,
+        "validation_mee_mean": 0.5326220658808759,
+        "validation_mee_std": 0.051908331041824796
+    },
+    "model_5": {
+        "tr_losses_mean": 0.09102297729037756,
+        "tr_losses_std": 0.004156567353461137,
+        "tr_evals_mean": 0.2656438974658828,
+        "tr_evals_std": 0.007134399368168383,
+        "validation_mse_mean": 0.5068759634109422,
+        "validation_mse_std": 0.11593711806578372,
+        "validation_mee_mean": 0.5234989622287858,
+        "validation_mee_std": 0.0473862196661156
+    },
+    "model_6": {
+        "tr_losses_mean": 0.0823552541555755,
+        "tr_losses_std": 0.008869218254617513,
+        "tr_evals_mean": 0.26080036893312875,
+        "tr_evals_std": 0.0245262494532463,
+        "validation_mse_mean": 0.4763704182415783,
+        "validation_mse_std": 0.12217283923848539,
+        "validation_mee_mean": 0.5197840420109652,
+        "validation_mee_std": 0.05611627878707884
+    },
+    "model_7": {
+        "tr_losses_mean": 0.08075385211830549,
+        "tr_losses_std": 0.010310348887278352,
+        "tr_evals_mean": 0.254881864252887,
+        "tr_evals_std": 0.021606873232780526,
+        "validation_mse_mean": 0.533396371238646,
+        "validation_mse_std": 0.1379325994930918,
+        "validation_mee_mean": 0.5365401467022726,
+        "validation_mee_std": 0.06222231233312843
+    },
+    "model_8": {
+        "tr_losses_mean": 0.1680717400977291,
+        "tr_losses_std": 0.035459183379886135,
+        "tr_evals_mean": 0.35120765698819595,
+        "tr_evals_std": 0.03922317056108578,
+        "validation_mse_mean": 0.6104112048889896,
+        "validation_mse_std": 0.1475677903726126,
+        "validation_mee_mean": 0.5714661224333522,
+        "validation_mee_std": 0.05539350554528938
+    },
+    "model_9": {
+        "tr_losses_mean": 0.0810508620597289,
+        "tr_losses_std": 0.01003879090732814,
+        "tr_evals_mean": 0.2610419806912413,
+        "tr_evals_std": 0.023164570855401724,
+        "validation_mse_mean": 0.5635930040418007,
+        "validation_mse_std": 0.15880595725874613,
+        "validation_mee_mean": 0.5429997802751834,
+        "validation_mee_std": 0.06634102928573694
+    },
+    "model_10": {
+        "tr_losses_mean": 0.08469850822686352,
+        "tr_losses_std": 0.007130185804964692,
+        "tr_evals_mean": 0.2573794405073545,
+        "tr_evals_std": 0.011953518208456259,
+        "validation_mse_mean": 0.5270310368165235,
+        "validation_mse_std": 0.1725139703313205,
+        "validation_mee_mean": 0.5300221453781088,
+        "validation_mee_std": 0.05871223793613261
+    },
+    "validation_mse_mean": 0.4400178457331457,
+    "validation_mse_std": 0.13134342677103888,
+    "validation_mee_mean": 0.48547506622241227,
+    "validation_mee_std": 0.0559512033295442
+}
