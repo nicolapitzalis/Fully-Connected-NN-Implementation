@@ -1,2 +1,4 @@
-# ml-poject
-Implementation of a basic Multi Layer Perceptron
+# Fully connected Feed-forward Neural Network for regression and binary classification
+In this project, we built a fully-connected feed-forward Neural Network, exploring different Gradient Descent algorithm variations. To find the best model for the ML-CUP23 competition, we conducted an extensive grid search over the neural network's settings using k-fold cross-validation. The chosen model is an ensemble of the top 10 performers, assessed through a 10-fold cross-validation procedure.
+
+Required packages are located in the requirements.txt file. To install just execute "pip install -r requirements.txt"

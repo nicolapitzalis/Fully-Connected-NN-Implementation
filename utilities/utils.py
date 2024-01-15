@@ -1,6 +1,8 @@
 import os
 import shutil
+import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from typing import Dict, List, Tuple
 
 plot_source_folder = 'plots/'
@@ -161,3 +163,29 @@ def plot_over_epochs(y_values: list, title: str, y_label: str, y_legend: str, y_
     plt.ylabel(y_label)
     plt.legend()
     plt.show()
+
+def save_array_with_comments(array, file_path, comments=None):
+    """
+    Saves a numpy array to a CSV file with specified comment lines.
+
+    :param array: numpy.ndarray to be saved.
+    :param file_path: Path of the file where the array should be saved.
+    :param comments: List of comment lines to be included at the beginning of the file.
+    """
+    # Ensure comments is a list of strings
+    if comments is None:
+        comments = []
+
+    # Convert the array to a Pandas DataFrame for easy CSV writing
+    df = pd.DataFrame(array)
+    
+    # Add row enumeration starting from 1
+    df = df.reset_index()
+    df['index'] += 1  # Increment the index by 1
+    df = df.rename(columns={'index': 'Row'})
+    
+    # Save the DataFrame to a CSV file with comments
+    with open(file_path, 'w') as file:
+        for comment in comments:
+            file.write(f"# {comment}\n")
+        df.to_csv(file, index=False, header=False)

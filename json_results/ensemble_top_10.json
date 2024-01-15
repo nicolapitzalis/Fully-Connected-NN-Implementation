@@ -99,8 +99,10 @@
         "validation_mee_mean": 0.5300221453781088,
         "validation_mee_std": 0.05871223793613261
     },
-    "validation_mse_mean": 0.4400178457331457,
-    "validation_mse_std": 0.13134342677103888,
-    "validation_mee_mean": 0.48547506622241227,
-    "validation_mee_std": 0.0559512033295442
+    "ensemble": {
+        "validation_mse_mean": 0.4400178457331457,
+        "validation_mse_std": 0.13134342677103888,
+        "validation_mee_mean": 0.48547506622241227,
+        "validation_mee_std": 0.0559512033295442
+    }
 }
